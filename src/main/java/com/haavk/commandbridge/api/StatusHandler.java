@@ -13,43 +13,69 @@ import java.io.OutputStream;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class StatusHandler implements HttpHandler {
 
     private final JavaPlugin plugin;
+    private Method getTpsMethod = null;
 
     public StatusHandler(JavaPlugin plugin) {
         this.plugin = plugin;
+        // Reflection for getTPS() — Paper 1.16+ only, silently absent on Spigot/older Paper
+        try {
+            getTpsMethod = Bukkit.class.getMethod("getTPS");
+        } catch (NoSuchMethodException ignored) {
+        }
     }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         try {
-            // Build status response
             StringBuilder json = new StringBuilder();
             json.append("{");
 
-            // Online players
+            // Online players — cross-version: array (pre-1.12) or Collection (1.12+)
             json.append("\"players\":{");
-            json.append("\"online\":" + Bukkit.getOnlinePlayers().size());
-            json.append(",\"max\":" + Bukkit.getMaxPlayers());
+            Object onlineRaw = Bukkit.class.getMethod("getOnlinePlayers").invoke(null);
+            int onlineCount;
+            List<String> playerNames = new ArrayList<>();
+            if (onlineRaw instanceof Object[]) {
+                Object[] arr = (Object[]) onlineRaw;
+                onlineCount = arr.length;
+                for (Object p : arr) {
+                    playerNames.add("\"" + JsonUtil.escapeJson(p.getClass().getMethod("getName").invoke(p).toString()) + "\"");
+                }
+            } else {
+                @SuppressWarnings("unchecked")
+                Iterable<Object> iter = (Iterable<Object>) onlineRaw;
+                java.util.Iterator<Object> it = iter.iterator();
+                onlineCount = 0;
+                while (it.hasNext()) {
+                    onlineCount++;
+                    Object p = it.next();
+                    playerNames.add("\"" + JsonUtil.escapeJson(p.getClass().getMethod("getName").invoke(p).toString()) + "\"");
+                }
+            }
+            json.append("\"online\":").append(onlineCount);
+            json.append(",\"max\":").append(Bukkit.getMaxPlayers());
             json.append(",\"list\":[");
-            List<String> names = Bukkit.getOnlinePlayers().stream()
-                .map(p -> "\"" + JsonUtil.escapeJson(p.getName()) + "\"")
-                .collect(Collectors.toList());
-            json.append(String.join(",", names));
-            json.append("]");
-            json.append("},");
+            json.append(String.join(",", playerNames));
+            json.append("]},");
 
-            // TPS (Paper/Leaves specific)
-            double[] tps = Bukkit.getTPS();
+            // TPS — Paper exclusive, via reflection
             json.append("\"tps\":{");
-            json.append("\"1m\":" + String.format("%.2f", tps[0]));
-            json.append(",\"5m\":" + String.format("%.2f", tps[1]));
-            json.append(",\"15m\":" + String.format("%.2f", tps[2]));
+            if (getTpsMethod != null) {
+                double[] tps = (double[]) getTpsMethod.invoke(null);
+                json.append("\"1m\":").append(String.format("%.2f", tps[0]));
+                json.append(",\"5m\":").append(String.format("%.2f", tps[1]));
+                json.append(",\"15m\":").append(String.format("%.2f", tps[2]));
+            } else {
+                json.append("\"1m\":-1,\"5m\":-1,\"15m\":-1");
+            }
             json.append("},");
 
             // Memory
@@ -57,32 +83,24 @@ public class StatusHandler implements HttpHandler {
             MemoryUsage heap = memBean.getHeapMemoryUsage();
             Runtime rt = Runtime.getRuntime();
             json.append("\"memory\":{");
-            json.append("\"heap_used_mb\":" + (heap.getUsed() / 1048576));
-            json.append(",\"heap_max_mb\":" + (heap.getMax() / 1048576));
-            json.append(",\"total_mb\":" + (rt.totalMemory() / 1048576));
-            json.append(",\"free_mb\":" + (rt.freeMemory() / 1048576));
+            json.append("\"heap_used_mb\":").append(heap.getUsed() / 1048576);
+            json.append(",\"heap_max_mb\":").append(heap.getMax() / 1048576);
+            json.append(",\"total_mb\":").append(rt.totalMemory() / 1048576);
+            json.append(",\"free_mb\":").append(rt.freeMemory() / 1048576);
             json.append("},");
 
-            // Uptime - use ManagementFactory for cross-version compatibility
-            json.append("\"uptime_seconds\":" + ManagementFactory.getRuntimeMXBean().getUptime() / 1000);
+            // Uptime
+            json.append("\"uptime_seconds\":").append(ManagementFactory.getRuntimeMXBean().getUptime() / 1000);
 
-            // Server info - strip any embedded quotes from version strings
+            // Server info
             json.append(",\"server\":{");
-            String ver = Bukkit.getVersion().replace("\"", "").replace("\\", "");
-            String bVer = Bukkit.getBukkitVersion().replace("\"", "").replace("\\", "");
-            json.append("\"version\":\"" + ver + "\"");
-            json.append(",\"bukkit_version\":\"" + bVer + "\"");
+            json.append("\"version\":\"").append(JsonUtil.escapeJson(Bukkit.getVersion())).append("\"");
+            json.append(",\"bukkit_version\":\"").append(JsonUtil.escapeJson(Bukkit.getBukkitVersion())).append("\"");
             json.append("}");
 
             // Plugin info
             json.append(",\"plugins\":{");
-            json.append("\"total\":" + plugin.getServer().getPluginManager().getPlugins().length);
-            json.append(",\"enabled\":" + plugin.getServer().getPluginManager().getPlugins().length);
-            json.append("}");
-
-            // Server tick (is the server running)
-            json.append(",\"tick\":{");
-            json.append("\"lagging\":" + (Bukkit.isPrimaryThread() ? "false" : "true"));
+            json.append("\"total\":").append(plugin.getServer().getPluginManager().getPlugins().length);
             json.append("}");
 
             json.append("}");

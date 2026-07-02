@@ -1,4 +1,3 @@
 name: CommandBridge
 version: 1.0.0
 main: com.haavk.commandbridge.CommandBridge
-api-version: 1.21

@@ -11,9 +11,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -99,7 +99,7 @@ public class CommandBridge extends JavaPlugin implements Listener {
      */
     public List<ChatMessage> getChatMessagesSince(int sinceId) {
         synchronized (chatBuffer) {
-            if (chatBuffer.isEmpty()) return List.of();
+            if (chatBuffer.isEmpty()) return Collections.emptyList();
             List<ChatMessage> result = new ArrayList<>();
             for (ChatMessage cm : chatBuffer) {
                 if (cm.id > sinceId) {
@@ -118,7 +118,7 @@ public class CommandBridge extends JavaPlugin implements Listener {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (command.getName().equalsIgnoreCase("commandbridge")) {
             if (args.length > 0 && args[0].equalsIgnoreCase("reload")) {
                 reloadConfig();
