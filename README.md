@@ -62,3 +62,7 @@ mvn clean package
 - Paper 1.21+（或兼容的 Folia / Leaves 服务端）
 - Java 21+
 - Maven 3.8+
+
+## 许可证
+
+AGPL v3。详见 [LICENSE](LICENSE)。
