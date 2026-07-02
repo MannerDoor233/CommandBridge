@@ -17,6 +17,7 @@ import java.io.OutputStream;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,7 +52,7 @@ public class DepartmentRouter implements HttpHandler {
         String body = "";
         if ("POST".equals(method) || "PUT".equals(method)) {
             InputStream is = exchange.getRequestBody();
-            body = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+            body = new String(JsonUtil.readAll(is), StandardCharsets.UTF_8);
         }
 
         try {
@@ -559,13 +560,18 @@ public class DepartmentRouter implements HttpHandler {
         writeJson(exchange, 200, json);
     }
 
-    /** 18. GET /tps — TPS */
+    /** 18. GET /tps — TPS (反射兼容 Spigot) */
     private void getTps(HttpExchange exchange) throws IOException {
-        double[] tps = Bukkit.getTPS();
-        String json = "{\"success\":true,\"tps\":{\"1m\":" + String.format("%.2f", tps[0]) +
-            ",\"5m\":" + String.format("%.2f", tps[1]) +
-            ",\"15m\":" + String.format("%.2f", tps[2]) + "}}";
-        writeJson(exchange, 200, json);
+        try {
+            Method getTpsMethod = Bukkit.class.getMethod("getTPS");
+            double[] tps = (double[]) getTpsMethod.invoke(null);
+            String json = "{\"success\":true,\"tps\":{\"1m\":" + String.format("%.2f", tps[0]) +
+                ",\"5m\":" + String.format("%.2f", tps[1]) +
+                ",\"15m\":" + String.format("%.2f", tps[2]) + "}}";
+            writeJson(exchange, 200, json);
+        } catch (ReflectiveOperationException e) {
+            writeJson(exchange, 200, "{\"success\":true,\"tps\":{\"1m\":-1,\"5m\":-1,\"15m\":-1}}");
+        }
     }
 
     /** 19. GET /uptime */
@@ -586,7 +592,11 @@ public class DepartmentRouter implements HttpHandler {
         StringBuilder sb = new StringBuilder("{\"success\":true,\"diagnosis\":{");
 
         if ("server".equals(target) || "all".equals(target)) {
-            double[] tps = Bukkit.getTPS();
+            double[] tps = {-1, -1, -1};
+            try {
+                Method getTpsMethod = Bukkit.class.getMethod("getTPS");
+                tps = (double[]) getTpsMethod.invoke(null);
+            } catch (Exception ignored) {}
             MemoryUsage heap = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
             sb.append("\"server\":{\"tps_1m\":" + String.format("%.2f", tps[0]));
             sb.append(",\"players\":" + Bukkit.getOnlinePlayers().size());

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#0f0f1a"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00d4ff"/>
+      <stop offset="100%" stop-color="#0088cc"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 背景圆角方块 -->
+  <rect x="0" y="0" width="512" height="512" rx="96" ry="96" fill="url(#bg)"/>
+
+  <!-- 外圈环（信号/连接环） -->
+  <circle cx="256" cy="256" r="160" fill="none" stroke="url(#glow)" stroke-width="6" opacity="0.3"/>
+
+  <!-- 六边形 H 标（HAAVK 标志性元素） -->
+  <polygon points="256,128 346,178 346,278 256,328 166,278 166,178"
+           fill="none" stroke="url(#glow)" stroke-width="8" stroke-linejoin="round"/>
+
+  <!-- 连接线：左→六边形→右（表示 HTTP 连接） -->
+  <line x1="96" y1="256" x2="166" y2="256" stroke="url(#glow)" stroke-width="6" stroke-linecap="round"/>
+  <line x1="346" y1="256" x2="416" y2="256" stroke="url(#glow)" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- 箭头标记（表示数据传输方向） -->
+  <polygon points="416,248 428,256 416,264" fill="#00d4ff"/>
+  <polygon points="96,248 84,256 96,264" fill="#00d4ff"/>
+
+  <!-- 六边形中心：链接符号 -->
+  <circle cx="256" cy="256" r="12" fill="#00d4ff"/>
+
+  <!-- 小数据点 -->
+  <circle cx="210" cy="200" r="4" fill="#00d4ff" opacity="0.6"/>
+  <circle cx="302" cy="200" r="4" fill="#00d4ff" opacity="0.6"/>
+  <circle cx="210" cy="312" r="4" fill="#00d4ff" opacity="0.6"/>
+  <circle cx="302" cy="312" r="4" fill="#00d4ff" opacity="0.6"/>
+</svg>

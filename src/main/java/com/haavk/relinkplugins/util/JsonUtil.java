@@ -2,6 +2,9 @@
 
 package com.haavk.relinkplugins.util;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -152,6 +155,20 @@ public class JsonUtil {
         }
 
         return result;
+    }
+
+    /**
+     * Java 8-compatible InputStream.readAllBytes().
+     * Reads the entire InputStream into a byte array.
+     */
+    public static byte[] readAll(InputStream is) throws IOException {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        byte[] data = new byte[8192];
+        int n;
+        while ((n = is.read(data, 0, data.length)) != -1) {
+            buffer.write(data, 0, n);
+        }
+        return buffer.toByteArray();
     }
 
     /**

@@ -37,7 +37,7 @@ public class CommandHandler implements HttpHandler {
 
             // Read request body
             InputStream is = exchange.getRequestBody();
-            String body = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+            String body = new String(JsonUtil.readAll(is), StandardCharsets.UTF_8);
 
             // Collect commands from body
             List<String> commands = extractCommands(body);

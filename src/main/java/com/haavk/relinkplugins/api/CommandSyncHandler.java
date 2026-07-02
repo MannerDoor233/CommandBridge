@@ -2,6 +2,7 @@
 
 package com.haavk.relinkplugins.api;
 
+import com.haavk.relinkplugins.util.JsonUtil;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import org.bukkit.Bukkit;
@@ -37,7 +38,7 @@ public class CommandSyncHandler implements HttpHandler {
             }
 
             InputStream is = exchange.getRequestBody();
-            String body = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+            String body = new String(JsonUtil.readAll(is), StandardCharsets.UTF_8);
 
             List<String> commands = extractCommands(body);
             if (commands.isEmpty()) {
