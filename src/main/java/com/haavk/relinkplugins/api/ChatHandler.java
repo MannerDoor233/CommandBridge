@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 
-package com.haavk.commandbridge.api;
+package com.haavk.relinkplugins.api;
 
-import com.haavk.commandbridge.CommandBridge;
-import com.haavk.commandbridge.CommandBridge.ChatMessage;
-import com.haavk.commandbridge.util.JsonUtil;
+import com.haavk.relinkplugins.Relink;
+import com.haavk.relinkplugins.Relink.ChatMessage;
+import com.haavk.relinkplugins.util.JsonUtil;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
@@ -17,9 +17,9 @@ import java.util.List;
  */
 public class ChatHandler implements HttpHandler {
 
-    private final CommandBridge plugin;
+    private final Relink plugin;
 
-    public ChatHandler(CommandBridge plugin) {
+    public ChatHandler(Relink plugin) {
         this.plugin = plugin;
     }
 

@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 
-package com.haavk.commandbridge.config;
+package com.haavk.relinkplugins.config;
 
-import com.haavk.commandbridge.CommandBridge;
+import com.haavk.relinkplugins.Relink;
 import org.bukkit.configuration.file.FileConfiguration;
 
 public class ConfigManager {
 
-    private final CommandBridge plugin;
+    private final Relink plugin;
     private int port;
     private String apiKey;
 
-    public ConfigManager(CommandBridge plugin) {
+    public ConfigManager(Relink plugin) {
         this.plugin = plugin;
         load();
     }

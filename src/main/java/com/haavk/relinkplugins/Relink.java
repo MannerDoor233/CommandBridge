@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 
-package com.haavk.commandbridge;
+package com.haavk.relinkplugins;
 
-import com.haavk.commandbridge.api.ApiServer;
-import com.haavk.commandbridge.config.ConfigManager;
+import com.haavk.relinkplugins.api.ApiServer;
+import com.haavk.relinkplugins.config.ConfigManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -17,7 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
-public class CommandBridge extends JavaPlugin implements Listener {
+public class Relink extends JavaPlugin implements Listener {
 
     private ConfigManager configManager;
     private ApiServer apiServer;
@@ -59,7 +59,7 @@ public class CommandBridge extends JavaPlugin implements Listener {
         apiServer = new ApiServer(this, configManager);
         try {
             apiServer.start(port);
-            getLogger().log(Level.INFO, "CommandBridge HTTP API started on port " + port);
+            getLogger().log(Level.INFO, "RelinkPlugins HTTP API started on port " + port);
         } catch (Exception e) {
             getLogger().log(Level.SEVERE, "Failed to start HTTP API server on port " + port, e);
             getServer().getPluginManager().disablePlugin(this);
@@ -70,7 +70,7 @@ public class CommandBridge extends JavaPlugin implements Listener {
     public void onDisable() {
         if (apiServer != null) {
             apiServer.stop();
-            getLogger().log(Level.INFO, "CommandBridge HTTP API stopped.");
+            getLogger().log(Level.INFO, "RelinkPlugins HTTP API stopped.");
         }
         synchronized (chatBuffer) {
             chatBuffer.clear();
@@ -119,7 +119,7 @@ public class CommandBridge extends JavaPlugin implements Listener {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (command.getName().equalsIgnoreCase("commandbridge")) {
+        if (command.getName().equalsIgnoreCase("relinkplugins")) {
             if (args.length > 0 && args[0].equalsIgnoreCase("reload")) {
                 reloadConfig();
                 configManager.reload();
@@ -132,13 +132,13 @@ public class CommandBridge extends JavaPlugin implements Listener {
                 try {
                     apiServer = new ApiServer(this, configManager);
                     apiServer.start(port);
-                    sender.sendMessage("§a[CommandBridge] Config reloaded. API server restarted on port " + port);
+                    sender.sendMessage("§a§6[RelinkPlugins] Config reloaded. API server restarted on port " + port);
                 } catch (Exception e) {
-                    sender.sendMessage("§c[CommandBridge] Failed to restart API server: " + e.getMessage());
+                    sender.sendMessage("§c§6[RelinkPlugins] Failed to restart API server: " + e.getMessage());
                 }
                 return true;
             }
-            sender.sendMessage("§6[CommandBridge] Usage: /commandbridge reload");
+            sender.sendMessage("§6§6[RelinkPlugins] Usage: /relink reload");
             return true;
         }
         return false;

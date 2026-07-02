@@ -1,6 +1,8 @@
-# CommandBridge
+# RelinkPlugins
 
-一个 Minecraft Paper 服务端插件，通过 HTTP API 远程控制服务器。
+一个 Minecraft Paper/Spigot 服务端插件，通过 HTTP API 远程控制服务器。
+
+兼容 **Paper/Spigot 1.8.9 ~ 最新版**，Java 8+。
 
 ## 功能
 
@@ -15,12 +17,16 @@
 | `/logs` | GET | 查看控制台日志 |
 | `/players` | GET | 在线玩家列表 |
 | `/tps` | GET | TPS 报告 |
+| `/diagnose` | GET | 诊断信息 |
+| `/config` | GET | 配置文件（控制部） |
+| `/broadcast` | POST | 全服广播（执行部） |
+| 等多达 20+ 端点 | | 三部制路由 |
 
 ## 安装
 
-1. 将 `CommandBridge.jar` 放入 `plugins/` 目录
-2. 启动服务器，生成 `plugins/CommandBridge/config.yml`
-3. 修改 `config.yml` 中的端口和密钥：
+1. 下载 `RelinkPlugins-1.0.2.jar` 放入 `plugins/` 目录
+2. 启动服务器，自动生成 `plugins/RelinkPlugins/config.yml`
+3. 编辑 `config.yml` 设置端口和 API 密钥：
 
 ```yaml
 api:
@@ -28,7 +34,7 @@ api:
   key: "your-secure-key"  # X-API-Key 鉴权
 ```
 
-4. 执行 `/commandbridge reload` 或重启服务器
+4. 执行 `/relink reload` 或重启服务器
 
 ## 调用示例
 
@@ -54,14 +60,18 @@ curl -X POST http://localhost:9178/chat \
 
 ```bash
 mvn clean package
-# 输出在 target/CommandBridge-*.jar
+# 输出在 target/RelinkPlugins-*.jar
 ```
 
 ## 依赖
 
-- Paper 1.21+（或兼容的 Folia / Leaves 服务端）
-- Java 21+
+- Paper 或 Spigot 1.8.9+ 
+- Java 8+
 - Maven 3.8+
+
+## 开发者
+
+HAAVK Group / 哈夫克集团
 
 ## 许可证
 

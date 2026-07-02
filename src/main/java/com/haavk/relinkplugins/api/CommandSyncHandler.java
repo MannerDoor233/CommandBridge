@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-package com.haavk.commandbridge.api;
+package com.haavk.relinkplugins.api;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;

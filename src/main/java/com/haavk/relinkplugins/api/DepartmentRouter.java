@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 
-package com.haavk.commandbridge.api;
+package com.haavk.relinkplugins.api;
 
-import com.haavk.commandbridge.util.JsonUtil;
+import com.haavk.relinkplugins.util.JsonUtil;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import org.bukkit.*;

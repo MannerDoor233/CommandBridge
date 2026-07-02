@@ -5,18 +5,23 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.haavk</groupId>
-    <artifactId>commandbridge</artifactId>
-    <version>1.0.1</version>
+    <artifactId>relinkplugins</artifactId>
+    <version>1.0.2</version>
     <packaging>jar</packaging>
 
-    <name>CommandBridge</name>
-    <description>HTTP API remote control for Minecraft Paper servers</description>
+    <name>RelinkPlugins</name>
+    <description>HTTP API remote control for Minecraft servers</description>
     <licenses>
         <license>
             <name>MIT License</name>
             <url>https://opensource.org/licenses/MIT</url>
         </license>
     </licenses>
+    <developers>
+        <developer>
+            <name>HAAVK Group / 哈夫克集团</name>
+        </developer>
+    </developers>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
@@ -41,7 +46,7 @@
     </dependencies>
 
     <build>
-        <finalName>CommandBridge-${project.version}</finalName>
+        <finalName>RelinkPlugins-${project.version}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

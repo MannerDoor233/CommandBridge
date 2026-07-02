@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-package com.haavk.commandbridge.util;
+package com.haavk.relinkplugins.util;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 
-package com.haavk.commandbridge.api;
+package com.haavk.relinkplugins.api;
 
-import com.haavk.commandbridge.CommandBridge;
-import com.haavk.commandbridge.config.ConfigManager;
+import com.haavk.relinkplugins.Relink;
+import com.haavk.relinkplugins.config.ConfigManager;
 import com.sun.net.httpserver.HttpServer;
 
 import java.net.InetSocketAddress;
@@ -12,11 +12,11 @@ import java.util.logging.Level;
 
 public class ApiServer {
 
-    private final CommandBridge plugin;
+    private final Relink plugin;
     private final ConfigManager configManager;
     private HttpServer server;
 
-    public ApiServer(CommandBridge plugin, ConfigManager configManager) {
+    public ApiServer(Relink plugin, ConfigManager configManager) {
         this.plugin = plugin;
         this.configManager = configManager;
     }
