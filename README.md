@@ -65,4 +65,4 @@ mvn clean package
 
 ## 许可证
 
-AGPL v3。详见 [LICENSE](LICENSE)。
+MIT。详见 [LICENSE](LICENSE)。
