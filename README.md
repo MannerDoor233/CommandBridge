@@ -1,7 +1,10 @@
 # RelinkPlugins
 
-一个 Minecraft Paper/Spigot 服务端插件，通过 HTTP API 远程控制服务器。
+**A Minecraft Paper/Spigot plugin that controls your server via HTTP API.**
 
+**一个通过 HTTP API 远程控制 Minecraft 服务器的 Paper/Spigot 插件。**
+
+Compatible with Paper/Spigot **1.8.9 ~ latest**, Java 8+.
 兼容 **Paper/Spigot 1.8.9 ~ 最新版**，Java 8+。
 
 ## 功能
