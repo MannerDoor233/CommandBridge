@@ -2,6 +2,7 @@
 
 package com.haavk.relinkplugins.api;
 
+import com.haavk.relinkplugins.util.ApiResponse;
 import com.haavk.relinkplugins.util.JsonUtil;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -29,32 +30,26 @@ public class CommandHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         try {
-            // Only accept POST
             if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-                writeResponse(exchange, 405, "{\"success\":false,\"error\":\"Method not allowed\"}");
+                writeJson(exchange, ApiResponse.methodNotAllowed());
                 return;
             }
 
-            // Read request body
             InputStream is = exchange.getRequestBody();
             String body = new String(JsonUtil.readAll(is), StandardCharsets.UTF_8);
 
-            // Collect commands from body
             List<String> commands = extractCommands(body);
-
             if (commands.isEmpty()) {
-                writeResponse(exchange, 400, "{\"success\":false,\"error\":\"Missing 'command' or 'commands' field\"}");
+                writeJson(exchange, ApiResponse.missingParam("command"));
                 return;
             }
 
-            // Execute all commands sequentially
             List<String> results = new ArrayList<>();
             for (String cmd : commands) {
                 String finalCmd = cmd;
                 try {
-                    Bukkit.getScheduler().runTask(plugin, () -> {
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCmd);
-                    });
+                    Bukkit.getScheduler().runTask(plugin, () ->
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCmd));
                     results.add("{\"command\":" + JsonUtil.escapeJson(cmd) + ",\"status\":\"queued\"}");
                 } catch (Exception e) {
                     plugin.getLogger().log(Level.WARNING, "Failed to execute command: " + cmd, e);
@@ -62,58 +57,39 @@ public class CommandHandler implements HttpHandler {
                 }
             }
 
-            String response = "{\"success\":true,\"executed\":[" + String.join(",", results) + "],\"count\":" + commands.size() + "}";
-            writeResponse(exchange, 200, response);
+            String data = "{\"executed\":[" + String.join(",", results) + "],\"count\":" + commands.size() + "}";
+            writeJson(exchange, ApiResponse.success(data, "命令已提交"));
 
         } catch (Exception e) {
             plugin.getLogger().log(Level.SEVERE, "Error handling command request", e);
-            writeResponse(exchange, 500, "{\"success\":false,\"error\":\"Internal server error\"}");
+            writeJson(exchange, ApiResponse.internalError(e.getMessage()));
         }
     }
 
-    /**
-     * Extract commands from JSON body using regex (avoids JsonUtil's inability to parse arrays).
-     * Supports:
-     * - {"command":"say hi"} (single)
-     * - {"commands":["say hi","say ho"]} (array)
-     * - {"command":"say hi","commands":["say ho"]} (both merged)
-     */
     private List<String> extractCommands(String body) {
         List<String> commands = new ArrayList<>();
-
-        // Extract single "command" value via regex
         Pattern singlePattern = Pattern.compile("\"command\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
         Matcher singleMatcher = singlePattern.matcher(body);
         if (singleMatcher.find()) {
             String cmd = unescape(singleMatcher.group(1));
-            if (!cmd.isEmpty()) {
-                commands.add(cmd);
-            }
+            if (!cmd.isEmpty()) commands.add(cmd);
         }
-
-        // Extract "commands" array values via regex
         Pattern arrayPattern = Pattern.compile("\"commands\"\\s*:\\s*\\[([^\\]]*)\\]");
         Matcher arrayMatcher = arrayPattern.matcher(body);
         if (arrayMatcher.find()) {
             String arrayContent = arrayMatcher.group(1).trim();
             if (!arrayContent.isEmpty()) {
-                // Split by comma at top level (doesn't handle nested arrays, but good enough for string arrays)
-                // Find quoted strings separated by commas
                 Pattern itemPattern = Pattern.compile("\"((?:[^\"\\\\]|\\\\.)*)\"");
                 Matcher itemMatcher = itemPattern.matcher(arrayContent);
                 while (itemMatcher.find()) {
                     String cmd = unescape(itemMatcher.group(1));
-                    if (!cmd.isEmpty()) {
-                        commands.add(cmd);
-                    }
+                    if (!cmd.isEmpty()) commands.add(cmd);
                 }
             }
         }
-
         return commands;
     }
 
-    /** Unescape JSON string escapes. */
     private String unescape(String s) {
         StringBuilder sb = new StringBuilder(s.length());
         for (int i = 0; i < s.length(); i++) {
@@ -123,7 +99,6 @@ public class CommandHandler implements HttpHandler {
                 switch (s.charAt(i)) {
                     case '"': sb.append('"'); break;
                     case '\\': sb.append('\\'); break;
-                    case '/': sb.append('/'); break;
                     case 'n': sb.append('\n'); break;
                     case 'r': sb.append('\r'); break;
                     case 't': sb.append('\t'); break;
@@ -136,12 +111,18 @@ public class CommandHandler implements HttpHandler {
         return sb.toString();
     }
 
-    private void writeResponse(HttpExchange exchange, int code, String body) throws IOException {
-        byte[] responseBytes = body.getBytes(StandardCharsets.UTF_8);
+    private void writeJson(HttpExchange exchange, String json) throws IOException {
+        int code = extractCode(json);
+        byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
-        exchange.sendResponseHeaders(code, responseBytes.length);
+        exchange.sendResponseHeaders(code, bytes.length);
         try (OutputStream os = exchange.getResponseBody()) {
-            os.write(responseBytes);
+            os.write(bytes);
         }
+    }
+
+    private int extractCode(String json) {
+        Matcher m = Pattern.compile("\"code\"\\s*:\\s*(\\d+)").matcher(json);
+        return m.find() ? Integer.parseInt(m.group(1)) : 200;
     }
 }

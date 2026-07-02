@@ -7,75 +7,171 @@
 Compatible with Paper/Spigot **1.8.9 ~ latest**, Java 8+.
 兼容 **Paper/Spigot 1.8.9 ~ 最新版**，Java 8+。
 
-## 功能
+## Features / 功能
 
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/command` | POST | 执行任意指令（异步） |
-| `/exec` | POST | 执行指令并返回 dispatch 状态 |
-| `/status` | GET | 服务器状态（TPS、内存、玩家数） |
-| `/chat` | POST | 向游戏内发送消息 |
-| `/chat/latest` | GET | 获取最新聊天消息 |
-| `/restart` | POST | 重启服务器 |
-| `/logs` | GET | 查看控制台日志 |
-| `/players` | GET | 在线玩家列表 |
-| `/tps` | GET | TPS 报告 |
-| `/diagnose` | GET | 诊断信息 |
-| `/config` | GET | 配置文件（控制部） |
-| `/broadcast` | POST | 全服广播（执行部） |
-| 等多达 20+ 端点 | | 三部制路由 |
+- **Command Execution** — Execute any console command (async or sync with result)
+- **Batch Operations** — Execute multiple commands, kick players, or give items in one request
+- **Server Status** — TPS, memory, players, worlds, uptime, plugins
+- **Time & Weather Control** — Set world time and weather
+- **Player Management** — Kick, teleport, gamemode, give, effects
+- **Chat** — Broadcast messages, ingest in-game chat
+- **Scheduled Tasks** — Run commands after a delay or on a timer
+- **API Key Management** — Multi-key with granular permissions, IP whitelist, rate limiting
+- **Logs** — Browse server logs via API
+- **Diagnose** — Comprehensive server diagnosis
+- **Unified JSON Response** — All endpoints return `{success, code, message, data}`
 
-## 安装
+## Endpoints / API 端点
 
-1. 下载 `RelinkPlugins-1.0.2.jar` 放入 `plugins/` 目录
-2. 启动服务器，自动生成 `plugins/RelinkPlugins/config.yml`
-3. 编辑 `config.yml` 设置端口和 API 密钥：
+| Endpoint | Method | Description / 说明 | Required Permission / 所需权限 |
+|----------|--------|--------------------|-----------------------|
+| `/status` | GET | Server status (TPS, memory, players) | `status` |
+| `/players` | GET | Online player list | `players` |
+| `/tps` | GET | TPS report | `status` |
+| `/memory` | GET | Memory details | `status` |
+| `/uptime` | GET | Server uptime | `status` |
+| `/diagnose` | POST | Server diagnosis | `status` |
+| `/logs` | GET | Server logs (query: `?lines=N`) | `logs` |
+| `/plugins` | GET | Plugin list | `plugins` |
+| `/worlds` | GET | World info | `worlds` |
+| `/config` | GET | Plugin configuration | `admin.config` |
+| `/command` | POST | Execute command (async) | `command.execute` |
+| `/exec` | POST | Execute command (sync, with result) | `command.execute` |
+| `/broadcast` | POST | Broadcast message | `broadcast` |
+| `/kick` | POST | Kick a player | `kick` |
+| `/teleport` | POST | Teleport player | `teleport` |
+| `/time` | POST | Set world time | `time` |
+| `/weather` | POST | Set weather | `weather` |
+| `/gamemode` | POST | Set gamemode | `gamemode` |
+| `/give` | POST | Give item | `give` |
+| `/effect` | POST | Apply effect | `effect` |
+| `/chat` | GET/POST | Send/receive chat messages | `chat` |
+| `/chat/latest` | GET | Latest chat ID | `chat` |
+| `/restart` | POST | Restart server | `restart` |
+| `/schedule` | POST | Create scheduled task | `schedule` |
+| `/scheduled-tasks` | GET | List scheduled tasks | `schedule` |
+| `/cancel-task` | POST | Cancel a task | `schedule` |
+| `/batch/command` | POST | Execute multiple commands | `command.execute` |
+| `/batch/kick` | POST | Kick multiple players | `kick` |
+| `/batch/give` | POST | Give items to multiple players | `give` |
+| `/keys` | GET/POST | List/create API keys | `admin.*` |
+| `/keys/{key}` | DELETE | Delete API key | `admin.*` |
+| `/keys/{key}/renew` | POST | Renew expired key | `admin.*` |
+| `/error-test` | GET | Test error responses (?type=400/401/403/...) | `admin.*` |
+
+## Installation / 安装
+
+1. Download `RelinkPlugins-*.jar` into your server's `plugins/` directory
+2. Start the server — config is auto-generated at `plugins/RelinkPlugins/config.yml`
+3. Edit `config.yml` to configure keys:
 
 ```yaml
 api:
-  port: 9178           # HTTP 监听端口
-  key: "your-secure-key"  # X-API-Key 鉴权
+  port: 9178
+  keys:
+    my-admin-key:
+      name: "管理员"
+      type: static
+      permissions: ["admin.*"]
+      ipWhitelist: []
+      rateLimit: 100
 ```
 
-4. 执行 `/relink reload` 或重启服务器
+4. Run `/relink reload` or restart the server
 
-## 调用示例
+## Examples / 调用示例
 
 ```bash
-# 执行指令
+# Execute a command
 curl -X POST http://localhost:9178/command \
   -H 'Content-Type: application/json' \
-  -H 'X-API-Key: your-secure-key' \
+  -H 'X-API-Key: my-admin-key' \
   -d '{"command":"say Hello"}'
 
-# 查询状态
-curl http://localhost:9178/status \
-  -H 'X-API-Key: your-secure-key'
-
-# 发送消息
-curl -X POST http://localhost:9178/chat \
+# Batch execute
+curl -X POST http://localhost:9178/batch/command \
   -H 'Content-Type: application/json' \
-  -H 'X-API-Key: your-secure-key' \
-  -d '{"message":"你好，世界","target":"@a"}'
+  -H 'X-API-Key: my-admin-key' \
+  -d '{"commands":["say 重启中","save-all"],"stopOnError":false}'
+
+# Server status
+curl http://localhost:9178/status -H 'X-API-Key: my-admin-key'
+
+# Kick player
+curl -X POST http://localhost:9178/kick \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: my-admin-key' \
+  -d '{"player":"Notch","reason":"维护中"}'
 ```
 
-## 构建
+## Response Format / 返回值格式
+
+All endpoints return unified JSON:
+
+```json
+{
+  "success": true,
+  "code": 200,
+  "message": "操作成功",
+  "data": { ... }
+}
+```
+
+Error example:
+```json
+{
+  "success": false,
+  "code": 400,
+  "message": "缺少必要参数: command",
+  "data": null
+}
+```
+
+## Permission Nodes / 权限节点
+
+| Permission | Covered Endpoints |
+|------------|-------------------|
+| `admin.*` | All endpoints |
+| `admin.config` | `/config` |
+| `admin.reload` | `/config/reload` |
+| `command.*` | `/command`, `/exec`, `/batch/command` |
+| `command.execute` | `/command`, `/exec`, `/batch/command` |
+| `broadcast` | `/broadcast` |
+| `kick` | `/kick`, `/batch/kick` |
+| `teleport` | `/teleport` |
+| `time` | `/time` |
+| `weather` | `/weather` |
+| `gamemode` | `/gamemode` |
+| `give` | `/give`, `/batch/give` |
+| `effect` | `/effect` |
+| `schedule` | `/schedule`, `/scheduled-tasks`, `/cancel-task` |
+| `restart` | `/restart` |
+| `status` | `/status`, `/tps`, `/memory`, `/uptime`, `/diagnose` |
+| `players` | `/players` |
+| `logs` | `/logs` |
+| `plugins` | `/plugins` |
+| `worlds` | `/worlds` |
+| `chat` | `/chat`, `/chat/latest` |
+
+Wildcards: `admin.*` grants all, `command.*` grants all command-related endpoints.
+
+## Build / 构建
 
 ```bash
 mvn clean package
-# 输出在 target/RelinkPlugins-*.jar
+# Output: target/RelinkPlugins-*.jar
 ```
 
-## 依赖
+## Requirements / 依赖
 
-- Paper 或 Spigot 1.8.9+ 
+- Paper or Spigot 1.8.9+
 - Java 8+
 - Maven 3.8+
 
-## 开发者
+## Developer / 开发者
 
 HAAVK Group / 哈夫克集团
 
-## 许可证
+## License / 许可证
 
 MIT。详见 [LICENSE](LICENSE)。

@@ -8,7 +8,6 @@ import com.sun.net.httpserver.HttpServer;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
-import java.util.logging.Level;
 
 public class ApiServer {
 
@@ -25,48 +24,58 @@ public class ApiServer {
         server = HttpServer.create(new InetSocketAddress(port), 10);
         server.setExecutor(Executors.newCachedThreadPool());
 
-        // Register routes with authentication
+        AuthFilter authFilter = new AuthFilter(configManager);
+
+        // Register all routes with authentication
         server.createContext("/command", new CommandHandler(plugin))
-              .getFilters()
-              .add(new AuthFilter(configManager.getApiKey()));
+              .getFilters().add(authFilter);
 
-        // Synchronous command endpoint (returns dispatch success/failure)
         server.createContext("/exec", new CommandSyncHandler(plugin))
-              .getFilters()
-              .add(new AuthFilter(configManager.getApiKey()));
+              .getFilters().add(authFilter);
 
-        // Status endpoint (also authenticated)
         server.createContext("/status", new StatusHandler(plugin))
-              .getFilters()
-              .add(new AuthFilter(configManager.getApiKey()));
+              .getFilters().add(authFilter);
 
-        // Restart endpoint (also authenticated)
         server.createContext("/restart", new RestartHandler(plugin))
-              .getFilters()
-              .add(new AuthFilter(configManager.getApiKey()));
+              .getFilters().add(authFilter);
 
-        // 聊天轮询端点（免 SSH 尬聊用）
+        // Chat endpoints
         server.createContext("/chat", new ChatHandler(plugin))
-              .getFilters()
-              .add(new AuthFilter(configManager.getApiKey()));
+              .getFilters().add(authFilter);
         server.createContext("/chat/latest", new ChatHandler(plugin))
-              .getFilters()
-              .add(new AuthFilter(configManager.getApiKey()));
+              .getFilters().add(authFilter);
 
-        // 三部制路由 — 控制部/执行部/审查部 全部20个端点
+        // Multi-department router — 控制/执行/审查 全部20+端点
+        DepartmentRouter deptRouter = new DepartmentRouter(plugin, configManager);
         String[] deptPaths = {
-            "/config", "/schedule", "/scheduled-tasks", "/cancel-task",      // 控制部
-            "/broadcast", "/kick", "/teleport", "/time", "/weather",          // 执行部
-            "/gamemode", "/give", "/effect",                                  // 执行部
-            "/logs", "/players", "/plugins", "/worlds",                       // 审查部
-            "/memory", "/tps", "/uptime", "/diagnose"                         // 审查部
+            "/config", "/schedule", "/scheduled-tasks", "/cancel-task",
+            "/broadcast", "/kick", "/teleport", "/time", "/weather",
+            "/gamemode", "/give", "/effect",
+            "/logs", "/players", "/plugins", "/worlds",
+            "/memory", "/tps", "/uptime", "/diagnose"
         };
-        DepartmentRouter deptRouter = new DepartmentRouter(plugin);
         for (String path : deptPaths) {
             server.createContext(path, deptRouter)
-                  .getFilters()
-                  .add(new AuthFilter(configManager.getApiKey()));
+                  .getFilters().add(authFilter);
         }
+
+        // Key management
+        KeyManagerHandler keyHandler = new KeyManagerHandler(plugin, configManager);
+        server.createContext("/keys", keyHandler)
+              .getFilters().add(authFilter);
+
+        // Batch operations
+        BatchHandler batchHandler = new BatchHandler(plugin, configManager);
+        server.createContext("/batch/command", batchHandler)
+              .getFilters().add(authFilter);
+        server.createContext("/batch/kick", batchHandler)
+              .getFilters().add(authFilter);
+        server.createContext("/batch/give", batchHandler)
+              .getFilters().add(authFilter);
+
+        // Error test (admin only)
+        server.createContext("/error-test", new ErrorTestHandler())
+              .getFilters().add(authFilter);
 
         server.start();
     }

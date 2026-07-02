@@ -2,6 +2,7 @@
 
 package com.haavk.relinkplugins.api;
 
+import com.haavk.relinkplugins.util.ApiResponse;
 import com.haavk.relinkplugins.util.JsonUtil;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -33,7 +34,7 @@ public class CommandSyncHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
         try {
             if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-                writeResponse(exchange, 405, "{\"success\":false,\"error\":\"Method not allowed\"}");
+                writeJson(exchange, ApiResponse.methodNotAllowed());
                 return;
             }
 
@@ -42,7 +43,7 @@ public class CommandSyncHandler implements HttpHandler {
 
             List<String> commands = extractCommands(body);
             if (commands.isEmpty()) {
-                writeResponse(exchange, 400, "{\"success\":false,\"error\":\"Missing 'command' field\"}");
+                writeJson(exchange, ApiResponse.missingParam("command"));
                 return;
             }
 
@@ -68,27 +69,23 @@ public class CommandSyncHandler implements HttpHandler {
                 boolean success = completed && dispatchOk.get();
 
                 StringBuilder entry = new StringBuilder();
-                entry.append("{\"command\":").append(escapeJson(cmd));
+                entry.append("{\"command\":").append(JsonUtil.escapeJson(cmd));
                 entry.append(",\"success\":").append(success);
                 if (!completed) {
                     entry.append(",\"error\":\"Timeout after 30s\"");
                 }
                 entry.append("}");
-
                 resultEntries.add(entry.toString());
                 if (!success) allSuccess = false;
             }
 
-            int httpCode = allSuccess ? 200 : 207;
-            String response = "{\"success\":" + allSuccess + ",\"executed\":[" +
-                String.join(",", resultEntries) +
-                "],\"count\":" + commands.size() + "}";
-
-            writeResponse(exchange, httpCode, response);
+            String data = "{\"executed\":[" + String.join(",", resultEntries)
+                + "],\"count\":" + commands.size() + ",\"all_success\":" + allSuccess + "}";
+            writeJson(exchange, ApiResponse.success(data, "命令同步执行完成"));
 
         } catch (Exception e) {
             plugin.getLogger().log(Level.SEVERE, "CommandSyncHandler error", e);
-            writeResponse(exchange, 500, "{\"success\":false,\"error\":\"Internal server error\"}");
+            writeJson(exchange, ApiResponse.internalError(e.getMessage()));
         }
     }
 
@@ -136,31 +133,18 @@ public class CommandSyncHandler implements HttpHandler {
         return sb.toString();
     }
 
-    private String escapeJson(String s) {
-        if (s == null) return "\"\"";
-        StringBuilder sb = new StringBuilder();
-        sb.append('"');
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            switch (c) {
-                case '"': sb.append("\\\""); break;
-                case '\\': sb.append("\\\\"); break;
-                case '\n': sb.append("\\n"); break;
-                case '\r': sb.append("\\r"); break;
-                case '\t': sb.append("\\t"); break;
-                default: sb.append(c);
-            }
+    private void writeJson(HttpExchange exchange, String json) throws IOException {
+        int code = extractCode(json);
+        byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+        exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
+        exchange.sendResponseHeaders(code, bytes.length);
+        try (OutputStream os = exchange.getResponseBody()) {
+            os.write(bytes);
         }
-        sb.append('"');
-        return sb.toString();
     }
 
-    private void writeResponse(HttpExchange exchange, int code, String body) throws IOException {
-        byte[] responseBytes = body.getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
-        exchange.sendResponseHeaders(code, responseBytes.length);
-        try (OutputStream os = exchange.getResponseBody()) {
-            os.write(responseBytes);
-        }
+    private int extractCode(String json) {
+        Matcher m = Pattern.compile("\"code\"\\s*:\\s*(\\d+)").matcher(json);
+        return m.find() ? Integer.parseInt(m.group(1)) : 200;
     }
 }

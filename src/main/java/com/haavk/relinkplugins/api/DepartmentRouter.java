@@ -2,6 +2,8 @@
 
 package com.haavk.relinkplugins.api;
 
+import com.haavk.relinkplugins.config.ConfigManager;
+import com.haavk.relinkplugins.util.ApiResponse;
 import com.haavk.relinkplugins.util.JsonUtil;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -27,7 +29,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * 三部制 API 处理器
+ * Multi-department API handler
  * 控制部 — 规划、配置、调度
  * 执行部 — 操作、命令、执行
  * 审查部 — 监控、日志、审查
@@ -35,12 +37,14 @@ import java.util.stream.Collectors;
 public class DepartmentRouter implements HttpHandler {
 
     private final JavaPlugin plugin;
+    private final ConfigManager configManager;
 
-    // 定时任务存储
+    // Scheduled tasks
     private final Map<String, ScheduledTask> scheduledTasks = new ConcurrentHashMap<>();
 
-    public DepartmentRouter(JavaPlugin plugin) {
+    public DepartmentRouter(JavaPlugin plugin, ConfigManager configManager) {
         this.plugin = plugin;
+        this.configManager = configManager;
     }
 
     @Override
@@ -48,7 +52,6 @@ public class DepartmentRouter implements HttpHandler {
         String method = exchange.getRequestMethod().toUpperCase();
         String path = exchange.getRequestURI().getPath().toLowerCase();
 
-        // Read body for POST requests
         String body = "";
         if ("POST".equals(method) || "PUT".equals(method)) {
             InputStream is = exchange.getRequestBody();
@@ -56,138 +59,116 @@ public class DepartmentRouter implements HttpHandler {
         }
 
         try {
-            // ======== 控制部 — 规划与管理 ========
             switch (path) {
-                // 1. GET /config — 查看插件配置
+                // ======== 控制部 ========
                 case "/config":
                     if ("GET".equals(method)) getConfig(exchange);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
-                // 2. POST /schedule — 创建定时任务
                 case "/schedule":
                     if ("POST".equals(method)) createSchedule(exchange, body);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
-                // 3. GET /scheduled-tasks — 列出定时任务
                 case "/scheduled-tasks":
                     if ("GET".equals(method)) listSchedules(exchange);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
-                // 4. POST /cancel-task — 取消定时任务
                 case "/cancel-task":
                     if ("POST".equals(method)) cancelSchedule(exchange, body);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
-                // ======== 执行部 — 操作与执行 ========
-
-                // 5. POST /broadcast — 广播消息
+                // ======== 执行部 ========
                 case "/broadcast":
                     if ("POST".equals(method)) broadcast(exchange, body);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
-                // 6. POST /kick — 踢出玩家
                 case "/kick":
                     if ("POST".equals(method)) kickPlayer(exchange, body);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
-                // 7. POST /teleport — 传送
                 case "/teleport":
                     if ("POST".equals(method)) teleport(exchange, body);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
-                // 8. POST /time — 设置时间
                 case "/time":
                     if ("POST".equals(method)) setTime(exchange, body);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
-                // 9. POST /weather — 设置天气
                 case "/weather":
                     if ("POST".equals(method)) setWeather(exchange, body);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
-                // 10. POST /gamemode — 设置游戏模式
                 case "/gamemode":
                     if ("POST".equals(method)) setGamemode(exchange, body);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
-                // 11. POST /give — 给予物品
                 case "/give":
                     if ("POST".equals(method)) giveItem(exchange, body);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
-                // 12. POST /effect — 应用效果
                 case "/effect":
                     if ("POST".equals(method)) applyEffect(exchange, body);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
-                // ======== 审查部 — 监控与日志 ========
-
-                // 13. GET /logs — 获取日志
+                // ======== 审查部 ========
                 case "/logs":
                     if ("GET".equals(method)) getLogs(exchange);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
-                // 14. GET /players — 在线玩家详情
                 case "/players":
                     if ("GET".equals(method)) getPlayers(exchange);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
-                // 15. GET /plugins — 插件列表
                 case "/plugins":
                     if ("GET".equals(method)) getPlugins(exchange);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
-                // 16. GET /worlds — 世界信息
                 case "/worlds":
                     if ("GET".equals(method)) getWorlds(exchange);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
-                // 17. GET /memory — 内存详情
                 case "/memory":
                     if ("GET".equals(method)) getMemoryDetail(exchange);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
-                // 18. GET /tps — TPS 历史
                 case "/tps":
                     if ("GET".equals(method)) getTps(exchange);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
-                // 19. GET /uptime — 运行时间
                 case "/uptime":
                     if ("GET".equals(method)) getUptime(exchange);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
-                // 20. POST /diagnose — 综合诊断
                 case "/diagnose":
                     if ("POST".equals(method)) diagnose(exchange, body);
-                    else methodNotAllowed(exchange);
+                    else send(exchange, ApiResponse.methodNotAllowed());
                     return;
 
                 default:
-                    exchange.sendResponseHeaders(404, -1);
+                    send(exchange, ApiResponse.notFound("端点不存在: " + path));
             }
         } catch (Exception e) {
             plugin.getLogger().log(Level.SEVERE, path + " error: " + e.getMessage(), e);
-            writeJson(exchange, 500, "{\"success\":false,\"error\":\"" + jsonEscape(e.getMessage()) + "\"}");
+            send(exchange, ApiResponse.internalError(e.getMessage()));
         }
     }
 
@@ -195,21 +176,28 @@ public class DepartmentRouter implements HttpHandler {
     //  控制部
     // ============================================================
 
-    /** 1. GET /config — 查看配置 */
     private void getConfig(HttpExchange exchange) throws IOException {
-        String json = "{\"success\":true,\"port\":" + plugin.getConfig().getInt("port", 9178) +
-            ",\"api_key\":\"" + plugin.getConfig().getString("api-key", "未设置").replaceAll("(?<=^.).*(?=.$)", "***") + "\"}";
-        writeJson(exchange, 200, json);
+        StringBuilder data = new StringBuilder();
+        data.append("{\"port\":").append(configManager.getPort());
+        data.append(",\"keys\":[");
+        boolean first = true;
+        for (String key : configManager.getKeys().keySet()) {
+            if (!first) data.append(",");
+            first = false;
+            String masked = key.length() > 8 ? key.substring(0, 4) + "****" + key.substring(key.length() - 4) : "****";
+            data.append("{\"key\":\"").append(JsonUtil.escapeJson(masked)).append("\"}");
+        }
+        data.append("]}");
+        send(exchange, ApiResponse.success(data.toString(), "配置信息"));
     }
 
-    /** 2. POST /schedule — 创建定时任务 */
     private void createSchedule(HttpExchange exchange, String body) throws IOException {
         String command = extractString(body, "command");
         long delay = extractLong(body, "delay_seconds", 60);
         long period = extractLong(body, "interval_seconds", -1);
 
         if (command.isEmpty()) {
-            writeJson(exchange, 400, "{\"success\":false,\"error\":\"Missing 'command' field\"}");
+            send(exchange, ApiResponse.missingParam("command"));
             return;
         }
 
@@ -217,7 +205,6 @@ public class DepartmentRouter implements HttpHandler {
         ScheduledTask task = new ScheduledTask(taskId, command);
 
         if (period > 0) {
-            // 循环任务
             task.bukkitTaskId = new BukkitRunnable() {
                 @Override
                 public void run() {
@@ -227,7 +214,6 @@ public class DepartmentRouter implements HttpHandler {
             }.runTaskTimer(plugin, delay * 20L, period * 20L).getTaskId();
             task.repeating = true;
         } else {
-            // 一次性延时任务
             task.bukkitTaskId = new BukkitRunnable() {
                 @Override
                 public void run() {
@@ -239,92 +225,96 @@ public class DepartmentRouter implements HttpHandler {
         }
 
         scheduledTasks.put(taskId, task);
-        writeJson(exchange, 200, "{\"success\":true,\"task_id\":\"" + taskId + "\",\"command\":" + jsonEscape(command) + ",\"delay\":" + delay + ",\"interval\":" + period + "}");
+        String data = "{\"task_id\":\"" + taskId + "\",\"command\":"
+            + JsonUtil.escapeJson(command) + ",\"delay_seconds\":" + delay
+            + ",\"interval_seconds\":" + period + "}";
+        send(exchange, ApiResponse.success(data, "定时任务已创建"));
     }
 
-    /** 3. GET /scheduled-tasks — 列出定时任务 */
     private void listSchedules(HttpExchange exchange) throws IOException {
-        StringBuilder sb = new StringBuilder("{\"success\":true,\"tasks\":[");
+        StringBuilder tasks = new StringBuilder("[");
         boolean first = true;
-        for (ScheduledTask task : scheduledTasks.values()) {
-            if (!first) sb.append(",");
-            sb.append("{\"id\":\"").append(task.id).append("\"");
-            sb.append(",\"command\":").append(jsonEscape(task.command));
-            sb.append(",\"repeating\":").append(task.repeating);
-            sb.append(",\"run_count\":").append(task.runCount);
-            sb.append(",\"task_id\":").append(task.bukkitTaskId);
-            sb.append("}");
+        for (ScheduledTask t : scheduledTasks.values()) {
+            if (!first) tasks.append(",");
+            tasks.append("{\"id\":\"").append(t.id).append("\"");
+            tasks.append(",\"command\":").append(JsonUtil.escapeJson(t.command));
+            tasks.append(",\"repeating\":").append(t.repeating);
+            tasks.append(",\"run_count\":").append(t.runCount);
+            tasks.append(",\"bukkit_task_id\":").append(t.bukkitTaskId);
+            tasks.append("}");
             first = false;
         }
-        sb.append("],\"count\":").append(scheduledTasks.size()).append("}");
-        writeJson(exchange, 200, sb.toString());
+        tasks.append("]");
+        String data = "{\"tasks\":" + tasks.toString() + ",\"count\":" + scheduledTasks.size() + "}";
+        send(exchange, ApiResponse.success(data, "定时任务列表"));
     }
 
-    /** 4. POST /cancel-task — 取消定时任务 */
     private void cancelSchedule(HttpExchange exchange, String body) throws IOException {
         String taskId = extractString(body, "task_id");
         if (taskId.isEmpty()) {
-            writeJson(exchange, 400, "{\"success\":false,\"error\":\"Missing 'task_id' field\"}");
+            send(exchange, ApiResponse.missingParam("task_id"));
             return;
         }
         ScheduledTask task = scheduledTasks.remove(taskId);
         if (task == null) {
-            writeJson(exchange, 404, "{\"success\":false,\"error\":\"Task not found\"}");
+            send(exchange, ApiResponse.notFound("定时任务 " + taskId + " 不存在"));
             return;
         }
         Bukkit.getScheduler().cancelTask(task.bukkitTaskId);
-        writeJson(exchange, 200, "{\"success\":true,\"cancelled\":\"" + taskId + "\",\"runs\":" + task.runCount + "}");
+        String data = "{\"cancelled\":\"" + taskId + "\",\"runs\":" + task.runCount + "}";
+        send(exchange, ApiResponse.success(data, "定时任务已取消"));
     }
 
     // ============================================================
     //  执行部
     // ============================================================
 
-    /** 5. POST /broadcast — 广播消息 */
     private void broadcast(HttpExchange exchange, String body) throws IOException {
         String message = extractString(body, "message");
         if (message.isEmpty()) {
-            writeJson(exchange, 400, "{\"success\":false,\"error\":\"Missing 'message' field\"}");
+            send(exchange, ApiResponse.missingParam("message"));
             return;
         }
         Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&', message));
-        writeJson(exchange, 200, "{\"success\":true,\"message\":" + jsonEscape(message) + ",\"players_reached\":" + Bukkit.getOnlinePlayers().size() + "}");
+        String data = "{\"message\":" + JsonUtil.escapeJson(message)
+            + ",\"players_reached\":" + Bukkit.getOnlinePlayers().size() + "}";
+        send(exchange, ApiResponse.success(data, "广播已发送"));
     }
 
-    /** 6. POST /kick — 踢出玩家 */
     private void kickPlayer(HttpExchange exchange, String body) throws IOException {
         String playerName = extractString(body, "player");
         String reason = extractString(body, "reason", "Kicked via API");
         if (playerName.isEmpty()) {
-            writeJson(exchange, 400, "{\"success\":false,\"error\":\"Missing 'player' field\"}");
+            send(exchange, ApiResponse.missingParam("player"));
             return;
         }
         Player player = Bukkit.getPlayerExact(playerName);
         if (player == null) {
-            writeJson(exchange, 404, "{\"success\":false,\"error\":\"Player not found\"}");
+            send(exchange, ApiResponse.notFound("玩家 " + playerName + " 不在线"));
             return;
         }
         player.kickPlayer(reason);
-        writeJson(exchange, 200, "{\"success\":true,\"kicked\":\"" + playerName + "\",\"reason\":" + jsonEscape(reason) + "}");
+        String data = "{\"player\":\"" + JsonUtil.escapeJson(playerName)
+            + "\",\"reason\":" + JsonUtil.escapeJson(reason) + "}";
+        send(exchange, ApiResponse.success(data, "玩家 " + playerName + " 已被踢出"));
     }
 
-    /** 7. POST /teleport — 传送 */
     private void teleport(HttpExchange exchange, String body) throws IOException {
         String playerName = extractString(body, "player");
         String targetName = extractString(body, "target");
         if (playerName.isEmpty()) {
-            writeJson(exchange, 400, "{\"success\":false,\"error\":\"Missing 'player' field\"}");
+            send(exchange, ApiResponse.missingParam("player"));
             return;
         }
         Player player = Bukkit.getPlayerExact(playerName);
         if (player == null) {
-            writeJson(exchange, 404, "{\"success\":false,\"error\":\"Player " + playerName + " not found\"}");
+            send(exchange, ApiResponse.notFound("玩家 " + playerName + " 不在线"));
             return;
         }
         if (!targetName.isEmpty()) {
             Player target = Bukkit.getPlayerExact(targetName);
             if (target == null) {
-                writeJson(exchange, 404, "{\"success\":false,\"error\":\"Target " + targetName + " not found\"}");
+                send(exchange, ApiResponse.notFound("目标 " + targetName + " 不在线"));
                 return;
             }
             player.teleport(target);
@@ -335,20 +325,20 @@ public class DepartmentRouter implements HttpHandler {
             String worldName = extractString(body, "world", player.getWorld().getName());
             World world = Bukkit.getWorld(worldName);
             if (world == null) {
-                writeJson(exchange, 404, "{\"success\":false,\"error\":\"World " + worldName + " not found\"}");
+                send(exchange, ApiResponse.notFound("世界 " + worldName + " 不存在"));
                 return;
             }
             player.teleport(new Location(world, x, y, z));
         }
-        writeJson(exchange, 200, "{\"success\":true,\"teleported\":\"" + playerName + "\"}");
+        String data = "{\"player\":\"" + JsonUtil.escapeJson(playerName) + "\"}";
+        send(exchange, ApiResponse.success(data, "已传送 " + playerName));
     }
 
-    /** 8. POST /time — 设置时间 */
     private void setTime(HttpExchange exchange, String body) throws IOException {
         String worldName = extractString(body, "world", Bukkit.getWorlds().get(0).getName());
         World world = Bukkit.getWorld(worldName);
         if (world == null) {
-            writeJson(exchange, 404, "{\"success\":false,\"error\":\"World not found\"}");
+            send(exchange, ApiResponse.notFound("世界 " + worldName + " 不存在"));
             return;
         }
         String timeStr = extractString(body, "time", "day");
@@ -360,19 +350,19 @@ public class DepartmentRouter implements HttpHandler {
             default:
                 try { world.setTime(Long.parseLong(timeStr)); }
                 catch (NumberFormatException e) {
-                    writeJson(exchange, 400, "{\"success\":false,\"error\":\"Invalid time value\"}");
+                    send(exchange, ApiResponse.badRequest("参数 time 格式错误"));
                     return;
                 }
         }
-        writeJson(exchange, 200, "{\"success\":true,\"world\":\"" + worldName + "\",\"time\":" + world.getTime() + "}");
+        String data = "{\"world\":\"" + worldName + "\",\"time\":" + world.getTime() + "}";
+        send(exchange, ApiResponse.success(data, "时间已设置"));
     }
 
-    /** 9. POST /weather — 设置天气 */
     private void setWeather(HttpExchange exchange, String body) throws IOException {
         String worldName = extractString(body, "world", Bukkit.getWorlds().get(0).getName());
         World world = Bukkit.getWorld(worldName);
         if (world == null) {
-            writeJson(exchange, 404, "{\"success\":false,\"error\":\"World not found\"}");
+            send(exchange, ApiResponse.notFound("世界 " + worldName + " 不存在"));
             return;
         }
         String weather = extractString(body, "weather", "clear");
@@ -384,23 +374,23 @@ public class DepartmentRouter implements HttpHandler {
             case "thunder":
                 world.setStorm(true); world.setThundering(true); break;
             default:
-                writeJson(exchange, 400, "{\"success\":false,\"error\":\"Invalid weather. Use: clear/rain/thunder\"}");
+                send(exchange, ApiResponse.badRequest("无效天气。可用: clear/rain/thunder"));
                 return;
         }
-        writeJson(exchange, 200, "{\"success\":true,\"world\":\"" + worldName + "\",\"weather\":\"" + weather + "\"}");
+        String data = "{\"world\":\"" + worldName + "\",\"weather\":\"" + weather + "\"}";
+        send(exchange, ApiResponse.success(data, "天气已设置"));
     }
 
-    /** 10. POST /gamemode — 设置游戏模式 */
     private void setGamemode(HttpExchange exchange, String body) throws IOException {
         String playerName = extractString(body, "player");
         String mode = extractString(body, "mode", "survival");
         if (playerName.isEmpty()) {
-            writeJson(exchange, 400, "{\"success\":false,\"error\":\"Missing 'player' field\"}");
+            send(exchange, ApiResponse.missingParam("player"));
             return;
         }
         Player player = Bukkit.getPlayerExact(playerName);
         if (player == null) {
-            writeJson(exchange, 404, "{\"success\":false,\"error\":\"Player not found\"}");
+            send(exchange, ApiResponse.notFound("玩家 " + playerName + " 不在线"));
             return;
         }
         GameMode gm;
@@ -409,187 +399,188 @@ public class DepartmentRouter implements HttpHandler {
             case "creative": case "c": gm = GameMode.CREATIVE; break;
             case "adventure": case "a": gm = GameMode.ADVENTURE; break;
             case "spectator": case "sp": gm = GameMode.SPECTATOR; break;
-            default: writeJson(exchange, 400, "{\"success\":false,\"error\":\"Invalid gamemode\"}"); return;
+            default:
+                send(exchange, ApiResponse.badRequest("无效游戏模式"));
+                return;
         }
         player.setGameMode(gm);
-        writeJson(exchange, 200, "{\"success\":true,\"player\":\"" + playerName + "\",\"gamemode\":\"" + mode + "\"}");
+        String data = "{\"player\":\"" + JsonUtil.escapeJson(playerName) + "\",\"gamemode\":\"" + mode + "\"}";
+        send(exchange, ApiResponse.success(data, "游戏模式已设置"));
     }
 
-    /** 11. POST /give — 给予物品 */
     private void giveItem(HttpExchange exchange, String body) throws IOException {
         String playerName = extractString(body, "player");
         String item = extractString(body, "item", "diamond");
         int count = (int) extractLong(body, "count", 1);
         if (playerName.isEmpty()) {
-            writeJson(exchange, 400, "{\"success\":false,\"error\":\"Missing 'player' field\"}");
+            send(exchange, ApiResponse.missingParam("player"));
             return;
         }
         Player player = Bukkit.getPlayerExact(playerName);
         if (player == null) {
-            writeJson(exchange, 404, "{\"success\":false,\"error\":\"Player not found\"}");
+            send(exchange, ApiResponse.notFound("玩家 " + playerName + " 不在线"));
             return;
         }
-        // Dispatch via command for item ID resolution
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "give " + playerName + " " + item + " " + count);
-        writeJson(exchange, 200, "{\"success\":true,\"player\":\"" + playerName + "\",\"item\":\"" + item + "\",\"count\":" + count + "}");
+        String data = "{\"player\":\"" + JsonUtil.escapeJson(playerName)
+            + "\",\"item\":\"" + item + "\",\"count\":" + count + "}";
+        send(exchange, ApiResponse.success(data, "物品已给予"));
     }
 
-    /** 12. POST /effect — 应用效果 */
     private void applyEffect(HttpExchange exchange, String body) throws IOException {
         String playerName = extractString(body, "player");
         String effect = extractString(body, "effect", "speed");
         int duration = (int) extractLong(body, "duration", 60);
         int amplifier = (int) extractLong(body, "amplifier", 1);
         if (playerName.isEmpty()) {
-            writeJson(exchange, 400, "{\"success\":false,\"error\":\"Missing 'player' field\"}");
+            send(exchange, ApiResponse.missingParam("player"));
             return;
         }
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "effect give " + playerName + " " + effect + " " + duration + " " + amplifier);
-        writeJson(exchange, 200, "{\"success\":true,\"player\":\"" + playerName + "\",\"effect\":\"" + effect + "\",\"duration\":" + duration + ",\"amplifier\":" + amplifier + "}");
+        String data = "{\"player\":\"" + JsonUtil.escapeJson(playerName)
+            + "\",\"effect\":\"" + effect + "\",\"duration\":" + duration + ",\"amplifier\":" + amplifier + "}";
+        send(exchange, ApiResponse.success(data, "效果已应用"));
     }
 
     // ============================================================
     //  审查部
     // ============================================================
 
-    /** 13. GET /logs — 获取日志 */
     private void getLogs(HttpExchange exchange) throws IOException {
         String logPath = "logs/latest.log";
         java.io.File logFile = new java.io.File(logPath);
         if (!logFile.exists()) {
-            writeJson(exchange, 200, "{\"success\":true,\"lines\":[]}");
+            send(exchange, ApiResponse.success("{\"lines\":[],\"total\":0}", "日志文件不存在"));
             return;
         }
         int lines = Math.min((int) extractLong(extractQueryString(exchange), "lines", 50), 200);
         try {
             java.util.List<String> allLines = java.nio.file.Files.readAllLines(logFile.toPath());
             int start = Math.max(0, allLines.size() - lines);
-            StringBuilder sb = new StringBuilder("{\"success\":true,\"count\":" + lines + ",\"total\":" + allLines.size() + ",\"lines\":[");
+            StringBuilder sb = new StringBuilder("{\"count\":").append(lines).append(",\"total\":").append(allLines.size()).append(",\"lines\":[");
             for (int i = start; i < allLines.size(); i++) {
                 if (i > start) sb.append(",");
-                sb.append(jsonEscape(allLines.get(i)));
+                sb.append(JsonUtil.escapeJson(allLines.get(i)));
             }
             sb.append("]}");
-            writeJson(exchange, 200, sb.toString());
+            send(exchange, ApiResponse.success(sb.toString(), "日志记录"));
         } catch (Exception e) {
-            writeJson(exchange, 500, "{\"success\":false,\"error\":\"" + jsonEscape(e.getMessage()) + "\"}");
+            send(exchange, ApiResponse.internalError(e.getMessage()));
         }
     }
 
-    /** 14. GET /players — 在线玩家详情 */
     private void getPlayers(HttpExchange exchange) throws IOException {
-        StringBuilder sb = new StringBuilder("{\"success\":true,\"online\":" + Bukkit.getOnlinePlayers().size() +
-            ",\"max\":" + Bukkit.getMaxPlayers() + ",\"players\":[");
+        StringBuilder players = new StringBuilder("[");
         boolean first = true;
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (!first) sb.append(",");
-            sb.append("{\"name\":\"").append(jsonEscape(p.getName())).append("\"");
-            sb.append(",\"uuid\":\"").append(p.getUniqueId()).append("\"");
-            sb.append(",\"gamemode\":\"").append(p.getGameMode().name().toLowerCase()).append("\"");
-            sb.append(",\"health\":").append(String.format("%.1f", p.getHealth()));
-            sb.append(",\"food\":").append(p.getFoodLevel());
-            sb.append(",\"level\":").append(p.getLevel());
-            sb.append(",\"xp\":").append(p.getExp());
-            sb.append(",\"world\":\"").append(p.getWorld().getName()).append("\"");
-            sb.append(",\"x\":").append(String.format("%.1f", p.getLocation().getX()));
-            sb.append(",\"y\":").append(String.format("%.1f", p.getLocation().getY()));
-            sb.append(",\"z\":").append(String.format("%.1f", p.getLocation().getZ()));
-            sb.append(",\"ping\":").append(p.getPing());
-            sb.append(",\"ip\":\"").append(p.getAddress() != null ? p.getAddress().getAddress().getHostAddress() : "unknown").append("\"");
-            sb.append("}");
+            if (!first) players.append(",");
+            players.append("{\"name\":\"").append(JsonUtil.escapeJson(p.getName())).append("\"");
+            players.append(",\"uuid\":\"").append(p.getUniqueId()).append("\"");
+            players.append(",\"gamemode\":\"").append(p.getGameMode().name().toLowerCase()).append("\"");
+            players.append(",\"health\":").append(String.format("%.1f", p.getHealth()));
+            players.append(",\"food\":").append(p.getFoodLevel());
+            players.append(",\"level\":").append(p.getLevel());
+            players.append(",\"xp\":").append(p.getExp());
+            players.append(",\"world\":\"").append(p.getWorld().getName()).append("\"");
+            players.append(",\"x\":").append(String.format("%.1f", p.getLocation().getX()));
+            players.append(",\"y\":").append(String.format("%.1f", p.getLocation().getY()));
+            players.append(",\"z\":").append(String.format("%.1f", p.getLocation().getZ()));
+            players.append(",\"ping\":").append(p.getPing());
+            players.append(",\"ip\":\"").append(p.getAddress() != null ? p.getAddress().getAddress().getHostAddress() : "unknown").append("\"");
+            players.append("}");
             first = false;
         }
-        sb.append("]}");
-        writeJson(exchange, 200, sb.toString());
+        players.append("]");
+        String data = "{\"online\":" + Bukkit.getOnlinePlayers().size()
+            + ",\"max\":" + Bukkit.getMaxPlayers()
+            + ",\"players\":" + players.toString() + "}";
+        send(exchange, ApiResponse.success(data, "在线玩家"));
     }
 
-    /** 15. GET /plugins — 插件列表 */
     private void getPlugins(HttpExchange exchange) throws IOException {
-        StringBuilder sb = new StringBuilder("{\"success\":true,\"total\":" + Bukkit.getPluginManager().getPlugins().length + ",\"plugins\":[");
+        StringBuilder plugins = new StringBuilder("[");
         boolean first = true;
         for (Plugin p : Bukkit.getPluginManager().getPlugins()) {
-            if (!first) sb.append(",");
-            sb.append("{\"name\":\"").append(jsonEscape(p.getName())).append("\"");
-            sb.append(",\"version\":\"").append(jsonEscape(p.getDescription().getVersion())).append("\"");
-            sb.append(",\"enabled\":").append(p.isEnabled());
-            sb.append(",\"main\":\"").append(jsonEscape(p.getDescription().getMain())).append("\"");
-            sb.append("}");
+            if (!first) plugins.append(",");
+            plugins.append("{\"name\":\"").append(JsonUtil.escapeJson(p.getName())).append("\"");
+            plugins.append(",\"version\":\"").append(JsonUtil.escapeJson(p.getDescription().getVersion())).append("\"");
+            plugins.append(",\"enabled\":").append(p.isEnabled());
+            plugins.append(",\"main\":\"").append(JsonUtil.escapeJson(p.getDescription().getMain())).append("\"");
+            plugins.append("}");
             first = false;
         }
-        sb.append("]}");
-        writeJson(exchange, 200, sb.toString());
+        plugins.append("]");
+        String data = "{\"total\":" + Bukkit.getPluginManager().getPlugins().length
+            + ",\"plugins\":" + plugins.toString() + "}";
+        send(exchange, ApiResponse.success(data, "插件列表"));
     }
 
-    /** 16. GET /worlds — 世界信息 */
     private void getWorlds(HttpExchange exchange) throws IOException {
-        StringBuilder sb = new StringBuilder("{\"success\":true,\"worlds\":[");
+        StringBuilder worlds = new StringBuilder("[");
         boolean first = true;
         for (World w : Bukkit.getWorlds()) {
-            if (!first) sb.append(",");
-            sb.append("{\"name\":\"").append(w.getName()).append("\"");
-            sb.append(",\"environment\":\"").append(w.getEnvironment().name().toLowerCase()).append("\"");
-            sb.append(",\"players\":").append(w.getPlayers().size());
-            sb.append(",\"time\":").append(w.getTime());
-            sb.append(",\"storm\":").append(w.hasStorm());
-            sb.append(",\"thunder\":").append(w.isThundering());
-            sb.append(",\"difficulty\":\"").append(w.getDifficulty().name().toLowerCase()).append("\"");
-            sb.append(",\"seed\":").append(w.getSeed());
-            sb.append("}");
+            if (!first) worlds.append(",");
+            worlds.append("{\"name\":\"").append(w.getName()).append("\"");
+            worlds.append(",\"environment\":\"").append(w.getEnvironment().name().toLowerCase()).append("\"");
+            worlds.append(",\"players\":").append(w.getPlayers().size());
+            worlds.append(",\"time\":").append(w.getTime());
+            worlds.append(",\"storm\":").append(w.hasStorm());
+            worlds.append(",\"thunder\":").append(w.isThundering());
+            worlds.append(",\"difficulty\":\"").append(w.getDifficulty().name().toLowerCase()).append("\"");
+            worlds.append(",\"seed\":").append(w.getSeed());
+            worlds.append("}");
             first = false;
         }
-        sb.append("],\"count\":").append(Bukkit.getWorlds().size()).append("}");
-        writeJson(exchange, 200, sb.toString());
+        worlds.append("]");
+        String data = "{\"count\":" + Bukkit.getWorlds().size() + ",\"worlds\":" + worlds.toString() + "}";
+        send(exchange, ApiResponse.success(data, "世界信息"));
     }
 
-    /** 17. GET /memory — 内存详情 */
     private void getMemoryDetail(HttpExchange exchange) throws IOException {
         MemoryMXBean mem = ManagementFactory.getMemoryMXBean();
         MemoryUsage heap = mem.getHeapMemoryUsage();
         MemoryUsage nonHeap = mem.getNonHeapMemoryUsage();
         Runtime rt = Runtime.getRuntime();
-        String json = "{\"success\":true," +
-            "\"heap\":{\"used_mb\":" + (heap.getUsed() / 1048576L) +
-            ",\"max_mb\":" + (heap.getMax() / 1048576L) +
-            ",\"committed_mb\":" + (heap.getCommitted() / 1048576L) +
-            ",\"init_mb\":" + (heap.getInit() / 1048576L) + "}," +
-            "\"non_heap\":{\"used_mb\":" + (nonHeap.getUsed() / 1048576L) +
-            ",\"max_mb\":" + (nonHeap.getMax() / 1048576L) + "}," +
-            "\"runtime\":{\"total_mb\":" + (rt.totalMemory() / 1048576L) +
-            ",\"free_mb\":" + (rt.freeMemory() / 1048576L) +
-            ",\"used_mb\":" + ((rt.totalMemory() - rt.freeMemory()) / 1048576L) + "}}";
-        writeJson(exchange, 200, json);
+        String data = "{\"heap\":{\"used_mb\":" + (heap.getUsed() / 1048576L)
+            + ",\"max_mb\":" + (heap.getMax() / 1048576L)
+            + ",\"committed_mb\":" + (heap.getCommitted() / 1048576L)
+            + ",\"init_mb\":" + (heap.getInit() / 1048576L) + "}"
+            + ",\"non_heap\":{\"used_mb\":" + (nonHeap.getUsed() / 1048576L)
+            + ",\"max_mb\":" + (nonHeap.getMax() / 1048576L) + "}"
+            + ",\"runtime\":{\"total_mb\":" + (rt.totalMemory() / 1048576L)
+            + ",\"free_mb\":" + (rt.freeMemory() / 1048576L)
+            + ",\"used_mb\":" + ((rt.totalMemory() - rt.freeMemory()) / 1048576L) + "}}";
+        send(exchange, ApiResponse.success(data, "内存信息"));
     }
 
-    /** 18. GET /tps — TPS (反射兼容 Spigot) */
     private void getTps(HttpExchange exchange) throws IOException {
         try {
             Method getTpsMethod = Bukkit.class.getMethod("getTPS");
             double[] tps = (double[]) getTpsMethod.invoke(null);
-            String json = "{\"success\":true,\"tps\":{\"1m\":" + String.format("%.2f", tps[0]) +
-                ",\"5m\":" + String.format("%.2f", tps[1]) +
-                ",\"15m\":" + String.format("%.2f", tps[2]) + "}}";
-            writeJson(exchange, 200, json);
+            String data = "{\"tps\":{\"1m\":" + String.format("%.2f", tps[0])
+                + ",\"5m\":" + String.format("%.2f", tps[1])
+                + ",\"15m\":" + String.format("%.2f", tps[2]) + "}}";
+            send(exchange, ApiResponse.success(data, "TPS 信息"));
         } catch (ReflectiveOperationException e) {
-            writeJson(exchange, 200, "{\"success\":true,\"tps\":{\"1m\":-1,\"5m\":-1,\"15m\":-1}}");
+            String data = "{\"tps\":{\"1m\":-1,\"5m\":-1,\"15m\":-1}}";
+            send(exchange, ApiResponse.success(data, "TPS 信息（不可用）"));
         }
     }
 
-    /** 19. GET /uptime */
     private void getUptime(HttpExchange exchange) throws IOException {
         long uptime = ManagementFactory.getRuntimeMXBean().getUptime() / 1000;
         long days = uptime / 86400;
         long hours = (uptime % 86400) / 3600;
         long minutes = (uptime % 3600) / 60;
         long seconds = uptime % 60;
-        String json = "{\"success\":true,\"uptime_seconds\":" + uptime +
-            ",\"formatted\":\"" + days + "天" + hours + "时" + minutes + "分" + seconds + "秒\"}";
-        writeJson(exchange, 200, json);
+        String data = "{\"uptime_seconds\":" + uptime
+            + ",\"formatted\":\"" + days + "天" + hours + "时" + minutes + "分" + seconds + "秒\"}";
+        send(exchange, ApiResponse.success(data, "运行时间"));
     }
 
-    /** 20. POST /diagnose — 综合诊断 */
     private void diagnose(HttpExchange exchange, String body) throws IOException {
         String target = extractString(body, "target", "server");
-        StringBuilder sb = new StringBuilder("{\"success\":true,\"diagnosis\":{");
+        StringBuilder diag = new StringBuilder("{");
 
         if ("server".equals(target) || "all".equals(target)) {
             double[] tps = {-1, -1, -1};
@@ -598,54 +589,58 @@ public class DepartmentRouter implements HttpHandler {
                 tps = (double[]) getTpsMethod.invoke(null);
             } catch (Exception ignored) {}
             MemoryUsage heap = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
-            sb.append("\"server\":{\"tps_1m\":" + String.format("%.2f", tps[0]));
-            sb.append(",\"players\":" + Bukkit.getOnlinePlayers().size());
-            sb.append(",\"memory_usage_pct\":" + String.format("%.1f", (double) heap.getUsed() / heap.getMax() * 100));
-            sb.append(",\"worlds\":" + Bukkit.getWorlds().size());
-            sb.append(",\"plugins\":" + Bukkit.getPluginManager().getPlugins().length);
-            sb.append("}");
+            diag.append("\"server\":{\"tps_1m\":").append(String.format("%.2f", tps[0]));
+            diag.append(",\"players\":").append(Bukkit.getOnlinePlayers().size());
+            diag.append(",\"memory_usage_pct\":").append(String.format("%.1f", (double) heap.getUsed() / heap.getMax() * 100));
+            diag.append(",\"worlds\":").append(Bukkit.getWorlds().size());
+            diag.append(",\"plugins\":").append(Bukkit.getPluginManager().getPlugins().length);
+            diag.append("}");
         }
         if ("player".equals(target) || "all".equals(target)) {
             String playerName = extractString(body, "player", "");
             if (!playerName.isEmpty()) {
                 Player p = Bukkit.getPlayerExact(playerName);
                 if (p != null) {
-                    if (sb.charAt(sb.length()-1) != '{') sb.append(",");
-                    sb.append("\"player\":{\"name\":\"" + jsonEscape(p.getName()) + "\"");
-                    sb.append(",\"health\":" + String.format("%.1f", p.getHealth()));
-                    sb.append(",\"food\":" + p.getFoodLevel());
-                    sb.append(",\"ping\":" + p.getPing());
-                    sb.append(",\"location\":\"" + p.getWorld().getName() + " " +
-                        String.format("%.0f", p.getLocation().getX()) + " " +
-                        String.format("%.0f", p.getLocation().getY()) + " " +
-                        String.format("%.0f", p.getLocation().getZ()) + "\"");
-                    sb.append("}");
+                    if (diag.charAt(diag.length()-1) != '{') diag.append(",");
+                    diag.append("\"player\":{\"name\":\"").append(JsonUtil.escapeJson(p.getName())).append("\"");
+                    diag.append(",\"health\":").append(String.format("%.1f", p.getHealth()));
+                    diag.append(",\"food\":").append(p.getFoodLevel());
+                    diag.append(",\"ping\":").append(p.getPing());
+                    diag.append(",\"location\":\"").append(p.getWorld().getName()).append(" ")
+                        .append(String.format("%.0f", p.getLocation().getX())).append(" ")
+                        .append(String.format("%.0f", p.getLocation().getY())).append(" ")
+                        .append(String.format("%.0f", p.getLocation().getZ())).append("\"");
+                    diag.append("}");
                 }
             }
         }
         if ("performance".equals(target) || "all".equals(target)) {
-            if (sb.charAt(sb.length()-1) != '{') sb.append(",");
-            sb.append("\"performance\":{\"tps_1m\":" + String.format("%.2f", Bukkit.getTPS()[0]));
-            sb.append(",\"tps_5m\":" + String.format("%.2f", Bukkit.getTPS()[1]));
-            sb.append(",\"tps_15m\":" + String.format("%.2f", Bukkit.getTPS()[2]));
-            sb.append(",\"free_memory_mb\":" + (Runtime.getRuntime().freeMemory() / 1048576));
-            sb.append(",\"max_memory_mb\":" + (Runtime.getRuntime().maxMemory() / 1048576));
-            sb.append("}");
+            if (diag.charAt(diag.length()-1) != '{') diag.append(",");
+            double[] tps;
+            try {
+                Method m = Bukkit.class.getMethod("getTPS");
+                tps = (double[]) m.invoke(null);
+            } catch (Exception e) {
+                tps = new double[]{-1, -1, -1};
+            }
+            diag.append("\"performance\":{\"tps_1m\":").append(String.format("%.2f", tps[0]));
+            diag.append(",\"tps_5m\":").append(String.format("%.2f", tps[1]));
+            diag.append(",\"tps_15m\":").append(String.format("%.2f", tps[2]));
+            diag.append(",\"free_memory_mb\":").append(Runtime.getRuntime().freeMemory() / 1048576);
+            diag.append(",\"max_memory_mb\":").append(Runtime.getRuntime().maxMemory() / 1048576);
+            diag.append("}");
         }
-        sb.append("}}");
-        writeJson(exchange, 200, sb.toString());
+        diag.append("}");
+        send(exchange, ApiResponse.success(diag.toString(), "诊断信息"));
     }
 
     // ============================================================
-    //  工具方法
+    //  Utility methods
     // ============================================================
 
-    private void methodNotAllowed(HttpExchange exchange) throws IOException {
-        writeJson(exchange, 405, "{\"success\":false,\"error\":\"Method not allowed\"}");
-    }
-
-    private void writeJson(HttpExchange exchange, int code, String body) throws IOException {
-        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+    private void send(HttpExchange exchange, String json) throws IOException {
+        int code = extractHttpCode(json);
+        byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
         exchange.sendResponseHeaders(code, bytes.length);
         try (OutputStream os = exchange.getResponseBody()) {
@@ -653,25 +648,12 @@ public class DepartmentRouter implements HttpHandler {
         }
     }
 
-    private String jsonEscape(String s) {
-        if (s == null) return "\"\"";
-        StringBuilder sb = new StringBuilder(s.length() + 2);
-        sb.append('"');
-        for (char c : s.toCharArray()) {
-            switch (c) {
-                case '"': sb.append("\\\""); break;
-                case '\\': sb.append("\\\\"); break;
-                case '\n': sb.append("\\n"); break;
-                case '\r': sb.append("\\r"); break;
-                case '\t': sb.append("\\t"); break;
-                default: sb.append(c);
-            }
-        }
-        sb.append('"');
-        return sb.toString();
+    private int extractHttpCode(String json) {
+        Pattern p = Pattern.compile("\"code\"\\s*:\\s*(\\d+)");
+        Matcher m = p.matcher(json);
+        return m.find() ? Integer.parseInt(m.group(1)) : 200;
     }
 
-    // 简单 JSON 字段提取（正则，支持嵌套）
     private String extractString(String json, String key) {
         return extractString(json, key, "");
     }

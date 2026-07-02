@@ -1,77 +1,72 @@
-# RelinkPlugins
+# RelinkPlugins — HTTP API 远程控制你的 Minecraft 服务器
 
-一个通过 HTTP API 远程控制 Minecraft 服务器的 Paper/Spigot 插件。内嵌 JDK 原生 HttpServer，零外部依赖，单 jar 即装即用。安装后通过 HTTP 请求即可执行游戏指令、查询状态、管理玩家、调度定时任务，无需 SSH、RCON 或第三方面板。
+> 一个通过 HTTP API 远程控制 Minecraft 服务器的 Paper/Spigot 插件，兼容 1.8.9 ~ 最新版。
+
+**A Minecraft Paper/Spigot plugin that controls your server via HTTP API. Compatible 1.8.9 ~ latest.**
 
 ---
 
-### 功能
+## 功能亮点
 
-- 异步/同步执行服务器指令（支持批量）
-- 服务器状态查询：TPS、内存、玩家、版本、运行时间
-- 在线玩家详情：坐标、血量、饱食度、Ping、IP
-- 控制台日志查看
-- 全服广播（支持颜色代码）
-- 踢出、传送、设置时间/天气/游戏模式
-- 给予物品、应用状态效果
-- 定时任务调度（延时单次 + 循环）
-- 聊天消息轮询
-- 重启服务器
-- 20+ API 端点
-- 单 jar 覆盖 Paper/Spigot 1.8.9 ~ 最新版，Java 8+
+- **统一返回值格式** — 所有端点返回标准 JSON `{success, code, message, data}`
+- **精细权限管理** — 多 API Key，每种 Key 独立配置权限、IP 白名单、频率限制
+- **批量操作** — 一次请求执行多条命令、踢出多个玩家、批量给予物品
+- **定时任务** — 延时/循环执行指令
+- **实时状态** — TPS、内存、在线玩家、延迟等
+- **玩家管理** — 踢出、传送、游戏模式、给予、效果
+- **聊天系统** — 向游戏内发消息，获取聊天记录
+- **全异步** — 命令执行不阻塞 HTTP 线程
+- **跨版本兼容** — Paper/Spigot 1.8.9 ~ 最新版，Java 8+
 
-### 安装
+## 30+ 端点
 
-放入 plugins/，启动服务器，编辑 config.yml 设置端口和 API 密钥。执行 `/relink reload` 生效。
+| 类别 | 端点 |
+|------|------|
+| 执行 | `/command`, `/exec`, `/broadcast`, `/kick`, `/teleport` |
+| 世界 | `/time`, `/weather`, `/worlds` |
+| 玩家 | `/players`, `/gamemode`, `/give`, `/effect` |
+| 状态 | `/status`, `/tps`, `/memory`, `/uptime`, `/diagnose` |
+| 日志 | `/logs`, `/plugins` |
+| 配置 | `/config`, `/keys` |
+| 聊天 | `/chat`, `/chat/latest` |
+| 调度 | `/schedule`, `/scheduled-tasks`, `/cancel-task` |
+| 批量 | `/batch/command`, `/batch/kick`, `/batch/give` |
+| 管理 | `/keys`, `/restart`, `/error-test` |
 
-### 技术细节
+## 调用示例
 
-详见 GitHub：https://github.com/MannerDoor233/Relink
+```bash
+# 执行命令
+curl -X POST http://localhost:9178/command \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: your-key' \
+  -d '{"command":"say Hello"}'
 
-### 许可证
+# 批量踢出
+curl -X POST http://localhost:9178/batch/kick \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: your-key' \
+  -d '{"players":["Notch","Steve"],"reason":"维护中"}'
 
-MIT
+# 查看状态
+curl http://localhost:9178/status -H 'X-API-Key: your-key'
+```
 
-### 开发者
+## 安装
+
+1. 下载 jar 放入 `plugins/`
+2. 启动服务器，编辑 `plugins/RelinkPlugins/config.yml`
+3. 配置你的 API Key
+4. 执行 `/relink reload`
+
+## 技术细节
+
+- 编译目标 Java 8，兼容 Java 8 ~ 21+
+- 零外部依赖，通过 JDK 内置 `com.sun.net.httpserver` 实现 HTTP
+- 命令同步端点（`/exec`）使用 `CountDownLatch` + Bukkit Scheduler
+- Chat 消息轮询基于环形缓冲区，上限 200 条
+- TPS 通过反射获取，Spigot 1.12 以下优雅降级
+
+## 开发者
 
 HAAVK Group / 哈夫克集团
-
----
-
----
-
-# RelinkPlugins
-
-A Paper/Spigot plugin that lets you control your Minecraft server entirely over HTTP. Built on JDK's built-in HttpServer with zero external dependencies — a single JAR, drop-in installation, no SSH/RCON/panel needed.
-
----
-
-### Features
-
-- Async & sync command execution (batch support)
-- Server status: TPS, memory, online players, version, uptime
-- Player details: location, health, food, ping, IP
-- Console logs
-- Broadcast with color code support
-- Kick, teleport, time/weather/gamemode control
-- Give items, apply potion effects
-- Scheduled tasks (delayed + repeating)
-- Chat message polling
-- Server restart
-- 20+ API endpoints
-- Single JAR, Paper/Spigot 1.8.9 ~ latest, Java 8+
-
-### Installation
-
-Drop into plugins/, start server, edit config.yml for port & API key. Run `/relink reload` to apply.
-
-### Technical Details
-
-See GitHub: https://github.com/MannerDoor233/Relink
-
-### License
-
-MIT
-
-### Developer
-
-HAAVK Group
