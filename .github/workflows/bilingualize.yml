@@ -26,28 +26,158 @@ jobs:
           if [ "${{ github.event.inputs.target_tags }}" = "all" ]; then
             RELEASES=$(gh release list --json tagName --jq '.[].tagName' --limit 20)
           else
-            RELEASES=$(echo "${{ github.event.inputs.target_tags }}" | tr ' ' '\n')
+            RELEASES=$(echo "${{ github.event.inputs.target_tags }}" | tr ' ' '|')
           fi
 
           for TAG in $RELEASES; do
             echo "=== Updating $TAG ==="
-            CURRENT_BODY=$(gh release view "$TAG" --json body --jq '.body' 2>/dev/null || true)
-            if echo "$CURRENT_BODY" | grep -q "^---$" 2>/dev/null; then
-              echo "$TAG already bilingual, skipping"
-              continue
-            fi
 
-            {
-              echo "$TAG 更新内容："
-              echo ""
-              echo "$CURRENT_BODY"
-              echo ""
-              echo "---"
-              echo ""
-              echo "$TAG Release Notes:"
-              echo ""
-              echo "$CURRENT_BODY"
-            } > /tmp/body.md
+            case "$TAG" in
+              v1.0.0)
+                python3 -c "
+body = '''v1.0.0 更新内容：
+
+初始发布版本。基础 HTTP API 端点。
+
+- POST /command — 异步执行指令
+- POST /exec — 同步执行指令（带结果返回）
+- GET /status — 服务器状态
+- POST /chat — 向游戏内发送消息
+- POST /restart — 重启服务器
+
+依赖：Paper 1.21+，Java 21+
+
+---
+
+v1.0.0 Release Notes:
+
+Initial release. Basic HTTP API endpoints.
+
+- POST /command — execute commands (async)
+- POST /exec — execute commands (sync with result)
+- GET /status — server status
+- POST /chat — send messages to game chat
+- POST /restart — restart server
+
+Requires Paper 1.21+, Java 21+
+'''
+with open('/tmp/body.md', 'w') as f:
+    f.write(body.lstrip())
+"
+                ;;
+
+              v1.0.1)
+                python3 -c "
+body = '''v1.0.1 更新内容：
+
+跨版本兼容发布。现在支持 Paper/Spigot 1.8.9 ~ 最新版。
+
+- 编译为 Java 8 字节码（兼容 Java 8~23+）
+- 移除 plugin.yml 中的 api-version（1.8.9+ 均可加载）
+- TPS 通过反射获取（非 Paper 服务端返回 -1）
+- getOnlinePlayers() 通过反射获取（兼容旧版 Bukkit API）
+
+---
+
+v1.0.1 Release Notes:
+
+Cross-version release. Now supports Paper/Spigot 1.8.9 through latest.
+
+- Java 8 bytecode (works on Java 8-23+ servers)
+- No api-version in plugin.yml (loads on all Paper/Spigot 1.8.9+)
+- getTPS() via reflection (-1 on non-Paper servers)
+- getOnlinePlayers() via reflection (legacy Bukkit API compat)
+'''
+with open('/tmp/body.md', 'w') as f:
+    f.write(body.lstrip())
+"
+                ;;
+
+              v1.0.2)
+                python3 -c "
+body = '''v1.0.2 更新内容：
+
+项目更名：从 CommandBridge 重命名为 RelinkPlugins。
+
+- 新名称：RelinkPlugins（避免 Modrinth 名称冲突）
+- 包名：com.haavk.relinkplugins
+- 命令：/relink reload
+- 开发者：HAAVK Group / 哈夫克集团
+- 配置目录：plugins/RelinkPlugins/
+- 默认端口 9178，X-API-Key 鉴权
+- 兼容 Paper/Spigot 1.8.9+，Java 8+
+
+---
+
+v1.0.2 Release Notes:
+
+Renamed from CommandBridge to RelinkPlugins (HAAVK Group).
+
+- New name: RelinkPlugins (avoid Modrinth name conflict)
+- Package: com.haavk.relinkplugins
+- Command: /relink reload
+- Developer: HAAVK Group / 哈夫克集团
+- Config directory: plugins/RelinkPlugins/
+- Default port 9178, X-API-Key auth
+- Compatible Paper/Spigot 1.8.9+, Java 8+
+'''
+with open('/tmp/body.md', 'w') as f:
+    f.write(body.lstrip())
+"
+                ;;
+
+              v1.1.0)
+                python3 -c "
+body = '''v1.1.0 更新内容：
+
+统一返回值、多 Key 鉴权、批量操作、错误处理细化。
+
+- 新增 ApiResponse 工具类 — 所有端点返回 {success, code, message, data}
+- 新增多 Key 鉴权系统，支持细粒度权限配置
+- 新增 API Key 类型：static（静态）、timed（过期时间）、onetime（一次性）
+- 新增 IP 白名单和频率限制
+- 新增批量端点：/batch/command、/batch/kick、/batch/give
+- 新增错误测试端点：/error-test?type=400/401/403/...
+- 重写 AuthFilter — 权限校验、IP 校验、频率限制
+- 所有 Handler 统一使用 ApiResponse 格式
+- 删除 三部制 路由命名
+
+---
+
+v1.1.0 Release Notes:
+
+Unified API response, multi-key auth, batch operations, error handling.
+
+- New ApiResponse utility — all endpoints return {success, code, message, data}
+- New multi-key auth system with granular permission configuration
+- New API key types: static / timed (expiry) / onetime (single-use)
+- New IP whitelist and rate limiting per key
+- New batch endpoints: /batch/command, /batch/kick, /batch/give
+- New error test endpoint: /error-test?type=400/401/403/...
+- Rewritten AuthFilter — permission validation, IP check, rate limiting
+- All handlers now use unified ApiResponse format
+- Removed legacy routing terminology
+'''
+with open('/tmp/body.md', 'w') as f:
+    f.write(body.lstrip())
+"
+                ;;
+
+              *)
+                CURRENT_BODY=$(gh release view "$TAG" --json body --jq '.body' 2>/dev/null || true)
+                {
+                  echo "$TAG 更新内容："
+                  echo ""
+                  echo "$CURRENT_BODY"
+                  echo ""
+                  echo "---"
+                  echo ""
+                  echo "$TAG Release Notes:"
+                  echo ""
+                  echo "$CURRENT_BODY"
+                } > /tmp/body.md
+                ;;
+            esac
 
             gh release edit "$TAG" --notes-file /tmp/body.md
             echo "Updated $TAG"
