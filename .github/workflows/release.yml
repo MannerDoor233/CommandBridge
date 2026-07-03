@@ -12,6 +12,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-java@v4
         with:
@@ -21,31 +23,49 @@ jobs:
       - name: Build with Maven
         run: mvn -B package -DskipTests
 
+      - name: Generate bilingual release notes
+        run: |
+          # Get previous tag
+          PREV_TAG=$(git tag --sort=-creatordate | head -n 2 | tail -n 1 2>/dev/null || echo "")
+          TAG="${{ github.ref_name }}"
+
+          # Get commits since previous tag
+          if [ -n "$PREV_TAG" ]; then
+            LOG=$(git log --pretty=format:"%s" "$PREV_TAG..$TAG" 2>/dev/null)
+          else
+            LOG=$(git log --pretty=format:"%s" 2>/dev/null | tail -n 20)
+          fi
+
+          # Build Chinese section
+          echo "$TAG 更新内容：" > /tmp/release_notes.md
+          echo "" >> /tmp/release_notes.md
+          echo "$LOG" | while IFS= read -r line; do
+            if [ -n "$line" ]; then
+              echo "- $line" >> /tmp/release_notes.md
+            fi
+          done
+
+          echo "" >> /tmp/release_notes.md
+          echo "---" >> /tmp/release_notes.md
+          echo "" >> /tmp/release_notes.md
+
+          # Build English section
+          echo "$TAG Release Notes:" >> /tmp/release_notes.md
+          echo "" >> /tmp/release_notes.md
+          echo "$LOG" | while IFS= read -r line; do
+            if [ -n "$line" ]; then
+              echo "- $line" >> /tmp/release_notes.md
+            fi
+          done
+
+          cat /tmp/release_notes.md
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          body: |
-            修复版本兼容性问题。
-
-            - 修复 jar 为 Java 8 字节码，现在可在 Java 8 上加载
-            - 修复 Spigot 上 /tps 端点因 NoSuchMethodError 挂死的问题
-            - 修复 /diagnose 同理
-            - 修复 InputStream.readAllBytes() 在 Java 8 上不存在的问题
-
-            测试通过版本: Paper 1.21.8 / Spigot 1.12.2 / Spigot 1.8.8
-
-            ---
-
-            Fixed cross-version compatibility issues.
-
-            - Fixed jar to Java 8 bytecode — now loadable on Java 8
-            - Fixed /tps endpoint hanging on Spigot due to NoSuchMethodError
-            - Fixed /diagnose similarly
-            - Fixed InputStream.readAllBytes() not existing on Java 8
-
-            Tested on: Paper 1.21.8 / Spigot 1.12.2 / Spigot 1.8.8
+          body_path: /tmp/release_notes.md
           files: target/RelinkPlugins-*.jar
           fail_on_unmatched_files: false
           generate_release_notes: false
