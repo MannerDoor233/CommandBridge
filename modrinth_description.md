@@ -1,10 +1,6 @@
 # RelinkPlugins — HTTP API 远程控制你的 Minecraft 服务器
 
-> 一个通过 HTTP API 远程控制 Minecraft 服务器的 Paper/Spigot 插件，兼容 1.8.9 ~ 最新版。
-
-**A Minecraft Paper/Spigot plugin that controls your server via HTTP API. Compatible 1.8.9 ~ latest.**
-
----
+一个通过 HTTP API 远程控制 Minecraft 服务器的 Paper/Spigot 插件，兼容 1.8.9 ~ 最新版。
 
 ## 功能亮点
 
@@ -36,20 +32,10 @@
 ## 调用示例
 
 ```bash
-# 执行命令
 curl -X POST http://localhost:9178/command \
   -H 'Content-Type: application/json' \
   -H 'X-API-Key: your-key' \
   -d '{"command":"say Hello"}'
-
-# 批量踢出
-curl -X POST http://localhost:9178/batch/kick \
-  -H 'Content-Type: application/json' \
-  -H 'X-API-Key: your-key' \
-  -d '{"players":["Notch","Steve"],"reason":"维护中"}'
-
-# 查看状态
-curl http://localhost:9178/status -H 'X-API-Key: your-key'
 ```
 
 ## 安装
@@ -68,5 +54,59 @@ curl http://localhost:9178/status -H 'X-API-Key: your-key'
 - TPS 通过反射获取，Spigot 1.12 以下优雅降级
 
 ## 开发者
+
+HAAVK Group / 哈夫克集团
+
+---
+
+# RelinkPlugins
+
+**HTTP API remote control for your Minecraft server.**
+
+A Paper/Spigot plugin for remote Minecraft server control via HTTP API, compatible with 1.8.9 ~ latest, Java 8+.
+
+## Highlights
+
+- **Unified JSON Response** — All endpoints return `{success, code, message, data}`
+- **Granular Permission System** — Multi-key auth with independent permissions, IP whitelist, rate limiting
+- **Batch Operations** — Execute commands, kick players, give items in a single request
+- **Scheduled Tasks** — Delayed or recurring command execution
+- **Real-time Status** — TPS, memory, online players, uptime, etc.
+- **Player Management** — Kick, teleport, gamemode, give, effects
+- **Chat System** — Send messages to game chat, poll chat history
+- **Fully Async** — Command execution never blocks HTTP threads
+- **Cross-Version Compatible** — Paper/Spigot 1.8.9 ~ latest, Java 8+
+
+## 30+ Endpoints
+
+| Category | Endpoints |
+|----------|-----------|
+| Execution | `/command`, `/exec`, `/broadcast`, `/kick`, `/teleport` |
+| World | `/time`, `/weather`, `/worlds` |
+| Player | `/players`, `/gamemode`, `/give`, `/effect` |
+| Status | `/status`, `/tps`, `/memory`, `/uptime`, `/diagnose` |
+| Logs | `/logs`, `/plugins` |
+| Config | `/config`, `/keys` |
+| Chat | `/chat`, `/chat/latest` |
+| Schedule | `/schedule`, `/scheduled-tasks`, `/cancel-task` |
+| Batch | `/batch/command`, `/batch/kick`, `/batch/give` |
+| Admin | `/keys`, `/restart`, `/error-test` |
+
+## Installation
+
+1. Drop the jar into `plugins/`
+2. Start the server, edit `plugins/RelinkPlugins/config.yml`
+3. Configure your API keys
+4. Run `/relink reload`
+
+## Tech Details
+
+- Java 8 bytecode target, compatible Java 8 ~ 21+
+- Zero external dependencies, uses JDK built-in `com.sun.net.httpserver`
+- Sync endpoint (`/exec`) uses `CountDownLatch` + Bukkit Scheduler
+- Chat polling via ring buffer (200 cap)
+- TPS fetched via reflection, gracefully degrades on Spigot <1.12
+
+## Developer
 
 HAAVK Group / 哈夫克集团

@@ -35,6 +35,17 @@ jobs:
             - 修复 InputStream.readAllBytes() 在 Java 8 上不存在的问题
 
             测试通过版本: Paper 1.21.8 / Spigot 1.12.2 / Spigot 1.8.8
+
+            ---
+
+            Fixed cross-version compatibility issues.
+
+            - Fixed jar to Java 8 bytecode — now loadable on Java 8
+            - Fixed /tps endpoint hanging on Spigot due to NoSuchMethodError
+            - Fixed /diagnose similarly
+            - Fixed InputStream.readAllBytes() not existing on Java 8
+
+            Tested on: Paper 1.21.8 / Spigot 1.12.2 / Spigot 1.8.8
           files: target/RelinkPlugins-*.jar
           fail_on_unmatched_files: false
           generate_release_notes: false
