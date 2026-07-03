@@ -1,0 +1,54 @@
+name: Bilingualize Existing Releases
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_tags:
+        description: Tags to update (space-separated, or "all")
+        required: true
+        default: "all"
+
+jobs:
+  bilingualize:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update release descriptions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          if [ "${{ github.event.inputs.target_tags }}" = "all" ]; then
+            RELEASES=$(gh release list --json tagName --jq '.[].tagName' --limit 20)
+          else
+            RELEASES=$(echo "${{ github.event.inputs.target_tags }}" | tr ' ' '\n')
+          fi
+
+          for TAG in $RELEASES; do
+            echo "=== Updating $TAG ==="
+            CURRENT_BODY=$(gh release view "$TAG" --json body --jq '.body' 2>/dev/null || true)
+            if echo "$CURRENT_BODY" | grep -q "^---$" 2>/dev/null; then
+              echo "$TAG already bilingual, skipping"
+              continue
+            fi
+
+            {
+              echo "$TAG 更新内容："
+              echo ""
+              echo "$CURRENT_BODY"
+              echo ""
+              echo "---"
+              echo ""
+              echo "$TAG Release Notes:"
+              echo ""
+              echo "$CURRENT_BODY"
+            } > /tmp/body.md
+
+            gh release edit "$TAG" --notes-file /tmp/body.md
+            echo "Updated $TAG"
+          done
