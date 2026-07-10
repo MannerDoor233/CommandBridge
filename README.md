@@ -64,7 +64,7 @@
 
 | 端点 | 方法 | 说明 | 所需权限 |
 |------|------|------|----------|
-| `/status` | GET | 服务器状态 | `status` |
+| `/status` | GET | 服务器状态（含 TPS、内存、在线、插件、OP 列表等完整信息） | `status` |
 | `/tps` | GET | TPS 报告 | `status` |
 | `/memory` | GET | 内存详情 | `status` |
 | `/uptime` | GET | 运行时间 | `status` |
@@ -72,6 +72,28 @@
 | `/players` | GET | 在线玩家列表 | `players` |
 | `/plugins` | GET | 插件列表 | `plugins` |
 | `/logs` | GET | 服务端日志 | `logs` |
+
+`/status` 响应示例：
+```json
+{
+  "success": true,
+  "code": 200,
+  "message": "OK",
+  "data": {
+    "tps": [20.0, 19.98, 19.95],
+    "mspt": [50.0, 50.05, 50.13],
+    "memory": { "used": 512, "max": 2048, "free": 1536, "total": 2048 },
+    "players": ["MannerDoor23_"],
+    "online": 1,
+    "maxPlayers": 30,
+    "uptime": "3d 12h 34m",
+    "version": "git-Leaves-1.21.8",
+    "core": "Leaves",
+    "plugins": 42,
+    "ops": ["MannerDoor23", "MannerDoor23_", "admin"]
+  }
+}
+```
 
 ### 聊天
 
@@ -275,7 +297,7 @@ Compatible with Paper/Spigot **1.8.9 ~ latest**, Java 8+.
 
 | Endpoint | Method | Description | Required Permission |
 |----------|--------|-------------|---------------------|
-| `/status` | GET | Server status | `status` |
+| `/status` | GET | Server status (TPS, memory, players, plugins, ops list, etc.) | `status` |
 | `/tps` | GET | TPS report | `status` |
 | `/memory` | GET | Memory details | `status` |
 | `/uptime` | GET | Server uptime | `status` |
@@ -283,6 +305,28 @@ Compatible with Paper/Spigot **1.8.9 ~ latest**, Java 8+.
 | `/players` | GET | Online players | `players` |
 | `/plugins` | GET | Plugin list | `plugins` |
 | `/logs` | GET | Server logs | `logs` |
+
+`/status` response example:
+```json
+{
+  "success": true,
+  "code": 200,
+  "message": "OK",
+  "data": {
+    "tps": [20.0, 19.98, 19.95],
+    "mspt": [50.0, 50.05, 50.13],
+    "memory": { "used": 512, "max": 2048, "free": 1536, "total": 2048 },
+    "players": ["MannerDoor23_"],
+    "online": 1,
+    "maxPlayers": 30,
+    "uptime": "3d 12h 34m",
+    "version": "git-Leaves-1.21.8",
+    "core": "Leaves",
+    "plugins": 42,
+    "ops": ["MannerDoor23", "MannerDoor23_", "admin"]
+  }
+}
+```
 
 ### Chat
 
