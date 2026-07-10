@@ -2,6 +2,7 @@
 
 package com.haavk.relinkplugins.api;
 
+import com.haavk.relinkplugins.crypto.CryptoUtil;
 import com.haavk.relinkplugins.util.ApiResponse;
 import com.haavk.relinkplugins.util.JsonUtil;
 import com.sun.net.httpserver.HttpExchange;
@@ -22,9 +23,11 @@ import java.util.regex.Pattern;
 public class CommandHandler implements HttpHandler {
 
     private final JavaPlugin plugin;
+    private final CryptoUtil crypto;
 
-    public CommandHandler(JavaPlugin plugin) {
+    public CommandHandler(JavaPlugin plugin, CryptoUtil crypto) {
         this.plugin = plugin;
+        this.crypto = crypto;
     }
 
     @Override
@@ -37,8 +40,24 @@ public class CommandHandler implements HttpHandler {
 
             InputStream is = exchange.getRequestBody();
             String body = new String(JsonUtil.readAll(is), StandardCharsets.UTF_8);
+            String decryptedBody;
+            boolean wasEncrypted = false;
 
-            List<String> commands = extractCommands(body);
+            // Check if this is an encrypted request
+            Pattern encPattern = Pattern.compile("\"encrypted\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
+            Matcher encMatcher = encPattern.matcher(body);
+            if (encMatcher.find() && crypto.isReady()) {
+                // Encrypted request: decrypt (ML-DSA verification removed — BC incompat with Paper)
+                String encryptedB64 = unescape(encMatcher.group(1));
+                decryptedBody = crypto.rsaDecrypt(encryptedB64);
+                wasEncrypted = true;
+                plugin.getLogger().info("Decrypted encrypted command");
+            } else {
+                // Plaintext request (backward compat)
+                decryptedBody = body;
+            }
+
+            List<String> commands = extractCommands(decryptedBody);
             if (commands.isEmpty()) {
                 writeJson(exchange, ApiResponse.missingParam("command"));
                 return;

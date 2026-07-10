@@ -4,6 +4,7 @@ package com.haavk.relinkplugins.api;
 
 import com.haavk.relinkplugins.Relink;
 import com.haavk.relinkplugins.config.ConfigManager;
+import com.haavk.relinkplugins.crypto.CryptoUtil;
 import com.sun.net.httpserver.HttpServer;
 
 import java.net.InetSocketAddress;
@@ -13,11 +14,13 @@ public class ApiServer {
 
     private final Relink plugin;
     private final ConfigManager configManager;
+    private final CryptoUtil crypto;
     private HttpServer server;
 
     public ApiServer(Relink plugin, ConfigManager configManager) {
         this.plugin = plugin;
         this.configManager = configManager;
+        this.crypto = new CryptoUtil();
     }
 
     public void start(int port) throws Exception {
@@ -27,10 +30,10 @@ public class ApiServer {
         AuthFilter authFilter = new AuthFilter(configManager);
 
         // Register all routes with authentication
-        server.createContext("/command", new CommandHandler(plugin))
+        server.createContext("/command", new CommandHandler(plugin, crypto))
               .getFilters().add(authFilter);
 
-        server.createContext("/exec", new CommandSyncHandler(plugin))
+        server.createContext("/exec", new CommandSyncHandler(plugin, crypto))
               .getFilters().add(authFilter);
 
         server.createContext("/status", new StatusHandler(plugin))

@@ -1,31 +1,20 @@
 # RelinkPlugins 配置文件
-# A Minecraft Paper/Spigot plugin that controls your server via HTTP API.
-# 一个通过 HTTP API 远程控制 Minecraft 服务器的 Paper/Spigot 插件。
-
 api:
-  # HTTP 服务器监听端口
   port: 9178
-
-  # API Key 配置 — 支持多 Key，每种 Key 可独立配置权限、IP 白名单、频率限制
   keys:
-    # 管理员密钥（所有权限）
-    admin-key-123:
+    haavk-admin:
       name: "管理员密钥"
       type: static
       permissions: ["admin.*"]
       ipWhitelist: []
       rateLimit: 100
-
-    # 操作员密钥（常用操作权限）
-    operator-key-456:
+    haavk-operator:
       name: "操作员密钥"
       type: static
       permissions: ["command.*", "broadcast", "kick", "gamemode"]
       ipWhitelist: []
       rateLimit: 30
-
-    # 只读密钥（仅查看状态）
-    viewer-key-789:
+    haavk-viewer:
       name: "只读密钥"
       type: static
       permissions: ["status", "players", "tps", "logs", "memory"]

@@ -58,6 +58,8 @@ public class StatusHandler implements HttpHandler {
                 + ",\"heap_used_mb\":" + (mem.getHeapMemoryUsage().getUsed() / 1048576)
                 + ",\"worlds\":" + Bukkit.getWorlds().size()
                 + ",\"plugins\":" + Bukkit.getPluginManager().getPlugins().length
+                + ",\"mspt\":" + String.format("%.2f", Bukkit.getServer().getAverageTickTime())
+                + ",\"ops\":" + opsJson()
                 + "}";
 
             writeJson(ApiResponse.success(data, "服务器状态"), exchange);
@@ -80,5 +82,17 @@ public class StatusHandler implements HttpHandler {
     private int extractCode(String json) {
         Matcher m = Pattern.compile("\"code\"\\s*:\\s*(\\d+)").matcher(json);
         return m.find() ? Integer.parseInt(m.group(1)) : 200;
+    }
+
+    private String opsJson() {
+        StringBuilder sb = new StringBuilder("[");
+        boolean first = true;
+        for (org.bukkit.OfflinePlayer op : Bukkit.getOperators()) {
+            if (!first) sb.append(",");
+            sb.append("\"").append(op.getName()).append("\"");
+            first = false;
+        }
+        sb.append("]");
+        return sb.toString();
     }
 }

@@ -2,6 +2,7 @@
 
 package com.haavk.relinkplugins.api;
 
+import com.haavk.relinkplugins.crypto.CryptoUtil;
 import com.haavk.relinkplugins.util.ApiResponse;
 import com.haavk.relinkplugins.util.JsonUtil;
 import com.sun.net.httpserver.HttpExchange;
@@ -25,9 +26,22 @@ import java.util.regex.Pattern;
 public class CommandSyncHandler implements HttpHandler {
 
     private final JavaPlugin plugin;
+    private final CryptoUtil crypto;
 
-    public CommandSyncHandler(JavaPlugin plugin) {
+    public CommandSyncHandler(JavaPlugin plugin, CryptoUtil crypto) {
         this.plugin = plugin;
+        this.crypto = crypto;
+    }
+
+    private String decryptIfNeeded(String body) throws Exception {
+        Pattern eP = Pattern.compile("\"encrypted\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
+        Matcher eM = eP.matcher(body);
+        if (eM.find() && crypto.isReady()) {
+            String enc = unescape(eM.group(1));
+            String dec = crypto.rsaDecrypt(enc);
+            return dec;
+        }
+        return body;
     }
 
     @Override
@@ -41,7 +55,19 @@ public class CommandSyncHandler implements HttpHandler {
             InputStream is = exchange.getRequestBody();
             String body = new String(JsonUtil.readAll(is), StandardCharsets.UTF_8);
 
-            List<String> commands = extractCommands(body);
+            // Decrypt if encrypted request
+            String decryptedBody;
+            try {
+                decryptedBody = decryptIfNeeded(body);
+            } catch (SecurityException e) {
+                writeJson(exchange, ApiResponse.forbidden(e.getMessage()));
+                return;
+            } catch (Exception e) {
+                writeJson(exchange, ApiResponse.forbidden("Decryption failed: " + e.getMessage()));
+                return;
+            }
+
+            List<String> commands = extractCommands(decryptedBody);
             if (commands.isEmpty()) {
                 writeJson(exchange, ApiResponse.missingParam("command"));
                 return;

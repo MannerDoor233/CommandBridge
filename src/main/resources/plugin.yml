@@ -1,3 +1,17 @@
 name: RelinkPlugins
 version: 1.1.0
 main: com.haavk.relinkplugins.Relink
+api-version: 1.21
+description: CommandBridge + Whitelist integration plugin for Haavk server
+author: Haavk
+
+commands:
+  relinkplugins:
+    description: RelinkPlugins admin commands
+    usage: /relinkplugins <reload>
+    permission: relinkplugins.admin
+
+permissions:
+  relinkplugins.admin:
+    description: RelinkPlugins admin commands
+    default: op
